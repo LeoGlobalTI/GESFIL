@@ -257,7 +257,13 @@ const StaffController: React.FC<{
     ? (stations.find(s => s.active)?.id || null) 
     : (user.assignedStationId || null);
     
-  const [activeStationId, setActiveStationId] = useState<string | null>(defaultStationId);
+  const [activeStationId, setActiveStationId] = useState<string | null>(() => defaultStationId);
+
+  useEffect(() => {
+    if (defaultStationId && !activeStationId) {
+      setActiveStationId(defaultStationId);
+    }
+  }, [defaultStationId]);
 
   const activeStation = useMemo(() => 
     stations.find(s => s.id === activeStationId),
@@ -296,15 +302,10 @@ const App: React.FC = () => {
     isServiceActive, seedDatabase
   } = useQmsStore();
 
-  const [tick, setTick] = useState(0);
   const onToggleService = useCallback((id: string, active: boolean) => updateService(id, { active }), [updateService]);
-  useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   if (!state.currentUser) {
-    return <LoginView onLogin={login} onSeed={seedDatabase} />;
+    return <LoginView onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;
   }
 
   const role = state.currentUser.role;

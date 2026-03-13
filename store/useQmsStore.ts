@@ -155,30 +155,42 @@ export const useQmsStore = () => {
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
     const updates: any = { status: newStatus };
+    const ticket = state.tickets.find(t => t.id === ticketId);
 
     if (newStatus === TicketStatus.CALLING) {
       updates.called_at = new Date().toISOString();
       updates.station_id = stationId;
-      // Recalled count increment is handled by fetching current state or we could do it in SQL
-      const ticket = state.tickets.find(t => t.id === ticketId);
-      if (ticket) {
-        updates.recalled_count = (ticket.metadata?.recalledCount || 0) + 1;
-      }
+      updates.recalled_count = (ticket?.metadata?.recalledCount || 0) + 1;
     } else if (newStatus === TicketStatus.ATTENDING) {
       updates.started_at = new Date().toISOString();
     } else if ([TicketStatus.COMPLETED, TicketStatus.CANCELLED].includes(newStatus)) {
       updates.ended_at = new Date().toISOString();
     }
 
-    const { error } = await supabase
-      .from('tickets')
-      .update(updates)
-      .eq('id', ticketId);
+    let query = supabase.from('tickets').update(updates).eq('id', ticketId);
 
-    if (error) console.error('Error updating ticket status:', error);
+    // Atomic check: Only allow calling if ticket is WAITING or already being called by THIS station
+    if (newStatus === TicketStatus.CALLING) {
+      query = query.or(`status.eq.${TicketStatus.WAITING},and(status.eq.${TicketStatus.CALLING},station_id.eq.${stationId})`);
+    }
+
+    const { error, data } = await query.select();
+
+    if (error) {
+      console.error('Error updating ticket status:', error);
+      return;
+    }
+
+    // If no rows were updated, it means the condition wasn't met (e.g., someone else took the ticket)
+    if (!data || data.length === 0) {
+      console.warn('Ticket update skipped: Ticket might have been taken by another operator.');
+      if (newStatus === TicketStatus.CALLING) {
+        alert('Este ticket ya ha sido tomado por otro operador.');
+      }
+    }
   }, [state.tickets]);
 
-  const addUser = async (u: Omit<User, 'id'>) => {
+  const addUser = useCallback(async (u: Omit<User, 'id'>) => {
     const { error } = await supabase.from('users').insert({
       username: u.username,
       password: u.password,
@@ -187,9 +199,9 @@ export const useQmsStore = () => {
       assigned_station_id: u.assignedStationId
     });
     if (error) console.error('Error adding user:', error);
-  };
+  }, []);
 
-  const updateUser = async (id: string, u: Partial<User>) => {
+  const updateUser = useCallback(async (id: string, u: Partial<User>) => {
     const updates: any = { ...u };
     if (u.assignedStationId !== undefined) {
       updates.assigned_station_id = u.assignedStationId;
@@ -197,14 +209,14 @@ export const useQmsStore = () => {
     }
     const { error } = await supabase.from('users').update(updates).eq('id', id);
     if (error) console.error('Error updating user:', error);
-  };
+  }, []);
 
-  const deleteUser = async (id: string) => {
+  const deleteUser = useCallback(async (id: string) => {
     const { error } = await supabase.from('users').delete().eq('id', id);
     if (error) console.error('Error deleting user:', error);
-  };
+  }, []);
 
-  const addService = async (s: Omit<Service, 'id'>) => {
+  const addService = useCallback(async (s: Omit<Service, 'id'>) => {
     const { error } = await supabase.from('services').insert({
       name: s.name,
       prefix: s.prefix,
@@ -215,9 +227,9 @@ export const useQmsStore = () => {
       end_time: s.endTime
     });
     if (error) console.error('Error adding service:', error);
-  };
+  }, []);
 
-  const updateService = async (id: string, s: Partial<Service>) => {
+  const updateService = useCallback(async (id: string, s: Partial<Service>) => {
     const updates: any = { ...s };
     if (s.startTime !== undefined) {
       updates.start_time = s.startTime;
@@ -229,14 +241,14 @@ export const useQmsStore = () => {
     }
     const { error } = await supabase.from('services').update(updates).eq('id', id);
     if (error) console.error('Error updating service:', error);
-  };
+  }, []);
 
-  const deleteService = async (id: string) => {
+  const deleteService = useCallback(async (id: string) => {
     const { error } = await supabase.from('services').delete().eq('id', id);
     if (error) console.error('Error deleting service:', error);
-  };
+  }, []);
 
-  const addStation = async (s: Omit<Station, 'id'>) => {
+  const addStation = useCallback(async (s: Omit<Station, 'id'>) => {
     const { error } = await supabase.from('stations').insert({
       name: s.name,
       operator_name: s.operatorName,
@@ -244,9 +256,9 @@ export const useQmsStore = () => {
       active: s.active
     });
     if (error) console.error('Error adding station:', error);
-  };
+  }, []);
 
-  const updateStation = async (id: string, s: Partial<Station>) => {
+  const updateStation = useCallback(async (id: string, s: Partial<Station>) => {
     const updates: any = { ...s };
     if (s.operatorName !== undefined) {
       updates.operator_name = s.operatorName;
@@ -258,36 +270,36 @@ export const useQmsStore = () => {
     }
     const { error } = await supabase.from('stations').update(updates).eq('id', id);
     if (error) console.error('Error updating station:', error);
-  };
+  }, []);
 
-  const deleteStation = async (id: string) => {
+  const deleteStation = useCallback(async (id: string) => {
     const { error } = await supabase.from('stations').delete().eq('id', id);
     if (error) console.error('Error deleting station:', error);
-  };
+  }, []);
 
-  const addPrinter = async (pr: Omit<Printer, 'id'>) => {
+  const addPrinter = useCallback(async (pr: Omit<Printer, 'id'>) => {
     const { error } = await supabase.from('printers').insert(pr);
     if (error) console.error('Error adding printer:', error);
-  };
+  }, []);
 
-  const updatePrinter = async (id: string, pr: Partial<Printer>) => {
+  const updatePrinter = useCallback(async (id: string, pr: Partial<Printer>) => {
     const { error } = await supabase.from('printers').update(pr).eq('id', id);
     if (error) console.error('Error updating printer:', error);
-  };
+  }, []);
 
-  const deletePrinter = async (id: string) => {
+  const deletePrinter = useCallback(async (id: string) => {
     const { error } = await supabase.from('printers').delete().eq('id', id);
     if (error) console.error('Error deleting printer:', error);
-  };
+  }, []);
 
-  const resetSystem = async () => {
+  const resetSystem = useCallback(async () => {
     if (confirm("¿Confirmar purga diaria? Esta acción reiniciará los turnos a 101 y vaciará la base de datos de tickets del día.")) {
       const { error: deleteError } = await supabase.from('tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
       const { error: configError } = await supabase.from('system_config').update({ value: {} }).eq('key', 'nextSequence');
       
       if (deleteError || configError) console.error('Error resetting system:', deleteError || configError);
     }
-  };
+  }, []);
 
   const isServiceActive = useCallback((service: Service) => {
     if (!service.active) return false;
@@ -302,7 +314,7 @@ export const useQmsStore = () => {
     return true;
   }, []);
 
-  const seedDatabase = async () => {
+  const seedDatabase = useCallback(async () => {
     try {
       setLoading(true);
       console.log('Iniciando inicialización de base de datos...');
@@ -372,12 +384,13 @@ export const useQmsStore = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchData]);
 
   return { 
     state, loading, login, logout, addTicket, updateTicketStatus, resetSystem, seedDatabase,
     addUser, updateUser, deleteUser, addService, updateService, deleteService, 
     addStation, updateStation, deleteStation, isServiceActive,
-    addPrinter, updatePrinter, deletePrinter
+    addPrinter, updatePrinter, deletePrinter,
+    isInitialized: state.users.length > 0
   };
 };

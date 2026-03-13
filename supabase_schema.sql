@@ -89,8 +89,8 @@ BEGIN
   VALUES ('nextSequence', '{}'::JSONB)
   ON CONFLICT (key) DO NOTHING;
 
-  -- Get current config
-  SELECT value INTO current_config FROM system_config WHERE key = 'nextSequence';
+  -- Get current config with lock to prevent race conditions
+  SELECT value INTO current_config FROM system_config WHERE key = 'nextSequence' FOR UPDATE;
 
   -- Get current value for the service or default to 101
   IF current_config ? s_id THEN
@@ -108,7 +108,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 10. Enable Realtime safely
+-- 10. Indexes for performance and synchronization
+CREATE INDEX IF NOT EXISTS idx_tickets_status_service ON tickets(status, service_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_station ON tickets(station_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at DESC);
+
+-- 11. Enable Realtime safely
 DO $$
 BEGIN
   BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE services; EXCEPTION WHEN OTHERS THEN NULL; END;

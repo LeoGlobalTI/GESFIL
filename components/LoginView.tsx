@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 interface LoginViewProps {
   onLogin: (username: string, password?: string) => Promise<boolean>;
   onSeed: () => Promise<void>;
+  isInitialized: boolean;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed }) => {
+const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed, isInitialized }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
@@ -30,7 +31,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed }) => {
   };
 
   const handleSeed = async () => {
-    if (confirm("¿Deseas inicializar la base de datos con los datos por defecto (incluyendo el usuario superadmin)?")) {
+    const message = isInitialized 
+      ? "¡ADVERTENCIA! La base de datos ya parece estar inicializada. Ejecutar esta acción sincronizará los datos por defecto y podría sobrescribir configuraciones manuales. ¿Estás seguro de que deseas continuar?"
+      : "¿Deseas inicializar la base de datos con los datos por defecto (incluyendo el usuario superadmin)?";
+
+    if (confirm(message)) {
       setSeeding(true);
       await onSeed();
       setSeeding(false);
@@ -48,7 +53,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed }) => {
             <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase">GES<span className="text-blue-600">FIL</span></h1>
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Corporativo</h2>
-          <p className="text-slate-500 mt-2 font-medium">Gestión Hospitalaria de Alto Rendimiento</p>
+          <p className="text-slate-500 mt-2 font-medium">Sistema de Gestion de Fila</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 space-y-6">
@@ -93,21 +98,25 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed }) => {
           <div className="pt-4 flex flex-col gap-4 text-xs text-slate-400 font-bold border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span>v4.0.2 Stable</span>
-              <span className="text-blue-600 cursor-pointer hover:underline">Recuperar Acceso</span>
+              <span className="opacity-40">Soporte Técnico: Interno</span>
             </div>
             <button 
               type="button"
               onClick={handleSeed}
               disabled={seeding}
-              className="text-indigo-600 hover:text-indigo-800 transition-colors text-center w-full py-2 bg-indigo-50 rounded-xl border border-indigo-100"
+              className={`text-center w-full py-2 rounded-xl border transition-colors ${
+                isInitialized 
+                  ? 'text-amber-600 hover:text-amber-800 bg-amber-50 border-amber-100' 
+                  : 'text-indigo-600 hover:text-indigo-800 bg-indigo-50 border-indigo-100'
+              }`}
             >
-              {seeding ? 'Inicializando...' : '¿Primera vez? Inicializar Base de Datos'}
+              {seeding ? 'Inicializando...' : isInitialized ? 'Re-sincronizar Base de Datos' : '¿Primera vez? Inicializar Base de Datos'}
             </button>
           </div>
         </form>
 
         <footer className="mt-12 text-center">
-           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Powered by GESFIL Infrastructure &copy; 2024</p>
+           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Powered by Global TI &copy; 2026</p>
         </footer>
       </div>
     </div>

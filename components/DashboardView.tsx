@@ -16,11 +16,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
   const [inspectingTicket, setInspectingTicket] = useState<Ticket | null>(null);
   const [aiInsight, setAiInsight] = useState<string>("Sincronizando con motor de inteligencia...");
 
+  const servicesLength = services.length;
+  const ticketsLength = tickets.length;
+
+  const lastAnalysisRef = React.useRef<string>("");
+
   useEffect(() => {
-    if (tickets.length > 3) {
-      analyzeOperationalHealth(tickets, services).then(setAiInsight);
+    const currentData = JSON.stringify({ t: ticketsLength, s: servicesLength });
+    if (ticketsLength > 3 && lastAnalysisRef.current !== currentData) {
+      lastAnalysisRef.current = currentData;
+      analyzeOperationalHealth(tickets, services).then(res => {
+        setAiInsight(res);
+      });
     }
-  }, [tickets.length, services]);
+  }, [ticketsLength, servicesLength, tickets, services]);
 
   const stats = useMemo(() => {
     const total = tickets.length;
