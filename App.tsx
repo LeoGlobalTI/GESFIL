@@ -21,18 +21,18 @@ const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> =
   const canSee = (targetRole: UserRole[]) => targetRole.includes(role);
 
   return (
-    <nav className="fixed bottom-10 left-1/2 -translate-x-1/2 dock-nav text-white px-8 py-5 rounded-[3rem] shadow-2xl z-50 flex items-center gap-10">
-      <div className="flex items-center gap-4 pr-8 border-r border-white/10 hidden md:flex">
-         <div className="w-11 h-11 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-400 text-lg">
+    <nav className="fixed bottom-6 md:bottom-10 left-1/2 -translate-x-1/2 dock-nav text-white px-4 md:px-8 py-3 md:py-5 rounded-2xl md:rounded-[3rem] shadow-2xl z-50 flex items-center gap-4 md:gap-10 w-[90%] md:w-auto justify-center">
+      <div className="flex items-center gap-4 pr-4 md:pr-8 border-r border-white/10 hidden sm:flex">
+         <div className="w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-400 text-base md:text-lg">
            {currentUser.name[0]}
          </div>
-         <div>
+         <div className="hidden md:block">
             <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] leading-none mb-1">Session</p>
             <p className="text-[13px] font-bold tracking-tight">{currentUser.username}</p>
          </div>
       </div>
 
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-6 md:gap-8">
         {canSee([UserRole.TOTEM, UserRole.ADMIN, UserRole.SUPERADMIN]) && (
           <Link title="Totem" to="/" className={`flex flex-col items-center gap-1.5 transition-all group ${isActive('/') ? 'text-indigo-400 scale-110' : 'text-slate-500 hover:text-white'}`}>
             <ICONS.Terminal />

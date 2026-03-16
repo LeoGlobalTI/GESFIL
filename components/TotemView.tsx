@@ -210,14 +210,14 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   if (isPriority === null) {
     return (
       <div className="max-w-5xl mx-auto px-8 py-12 min-h-[calc(100vh-8rem)] flex flex-col justify-center">
-        <header className="text-center mb-12 animate-fade-in">
-          <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-200 animate-float">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <header className="text-center mb-8 md:mb-12 animate-fade-in">
+          <div className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-indigo-200 animate-float">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:w-9 md:h-9">
               <path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>
             </svg>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight mb-4">BIENVENIDO</h1>
-          <p className="text-lg md:text-2xl text-slate-500 font-semibold tracking-tight">Seleccione su tipo de atención</p>
+          <h1 className="text-4xl md:text-7xl font-black text-slate-900 tracking-tight mb-4">BIENVENIDO</h1>
+          <p className="text-base md:text-2xl text-slate-500 font-semibold tracking-tight">Seleccione su tipo de atención</p>
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-10 animate-fade-in">
@@ -253,16 +253,16 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
-      <header className="text-center mb-12 animate-fade-in">
+      <header className="text-center mb-8 md:mb-12 animate-fade-in">
         <button 
           onClick={() => setIsPriority(null)}
-          className="mb-8 px-8 py-4 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 text-slate-600 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 mx-auto active:scale-95"
+          className="mb-6 md:mb-8 px-6 md:px-8 py-3 md:py-4 bg-white border border-slate-200 shadow-sm hover:bg-slate-50 text-slate-600 rounded-xl md:rounded-2xl text-[10px] md:text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 mx-auto active:scale-95"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           Volver al inicio
         </button>
-        <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight mb-4 uppercase">SERVICIOS</h1>
-        <p className="text-lg md:text-xl text-slate-500 font-semibold tracking-tight">
+        <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight mb-4 uppercase">SERVICIOS</h1>
+        <p className="text-base md:text-xl text-slate-500 font-semibold tracking-tight">
           {isPriority ? 'Atención Preferente' : 'Atención General'} • Seleccione el área
         </p>
       </header>

@@ -72,16 +72,16 @@ const StaffView: React.FC<StaffViewProps> = ({
   const currentService = activeTicket ? services.find(s => s.id === activeTicket.serviceId) : null;
 
   return (
-    <div className="flex min-h-[calc(100vh-180px)] w-full max-w-[1600px] mx-auto gap-8 p-2 animate-fade-in">
+    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-180px)] w-full max-w-[1600px] mx-auto gap-4 lg:gap-8 p-2 animate-fade-in">
       {/* Sidebar */}
       {isAdmin && allStations.length > 0 && (
-        <aside className="w-64 flex-shrink-0 hidden lg:flex flex-col gap-5">
-          <div className="bg-white rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
+        <aside className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-5">
+          <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-50 mb-3">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] block">Red de Módulos</span>
             </div>
             
-            <div className="space-y-1.5 overflow-y-auto pr-1.5 custom-scrollbar flex-grow">
+            <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
               {allStations.map(s => {
                 const isActive = s.id === station.id;
                 const stationWaitingCount = tickets.filter(t => 
@@ -95,7 +95,7 @@ const StaffView: React.FC<StaffViewProps> = ({
                   <button
                     key={s.id}
                     onClick={() => onSelectStation?.(s.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-[1.5rem] transition-all duration-300 group ${
+                    className={`flex-shrink-0 lg:w-full flex items-center justify-between px-4 py-3.5 rounded-[1.5rem] transition-all duration-300 group ${
                       isActive 
                         ? "bg-slate-900 text-white shadow-lg -translate-y-0.5" 
                         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -104,14 +104,14 @@ const StaffView: React.FC<StaffViewProps> = ({
                     <div className="flex flex-col items-start min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                          <div className={`w-1.5 h-1.5 rounded-full ${activeOnStation ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                         <p className={`text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-indigo-400' : 'text-slate-400'}`}>
+                         <p className={`text-[8px] font-black uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-indigo-400' : 'text-slate-400'}`}>
                            {s.name}
                          </p>
                       </div>
                       <p className="text-[11px] font-black tracking-tight truncate w-full">{s.operatorName}</p>
                     </div>
                     {stationWaitingCount > 0 && (
-                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded-full shrink-0 ml-2 ${
                         isActive ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'
                       }`}>
                         {stationWaitingCount}
@@ -139,23 +139,23 @@ const StaffView: React.FC<StaffViewProps> = ({
 
       {/* Main Content */}
       <div className="flex-grow flex flex-col gap-6">
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex justify-between items-center">
-          <div className="flex items-center gap-5">
-            <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-200">
+        <div className="bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-5 w-full sm:w-auto">
+            <div className="w-14 h-14 bg-slate-900 rounded-2xl flex-shrink-0 flex items-center justify-center text-white shadow-xl shadow-slate-200">
                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operativo</p>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">{station.name}</h2>
-              <p className="text-xs text-slate-500 font-bold">Responsable: <span className="text-indigo-600">{station.operatorName}</span></p>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight truncate">{station.name}</h2>
+              <p className="text-xs text-slate-500 font-bold truncate">Responsable: <span className="text-indigo-600">{station.operatorName}</span></p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-             <div className="text-right hidden sm:block">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
+             <div className="text-right hidden md:block">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Servicios Asignados</p>
                 <p className="text-[10px] font-bold text-slate-600">{station.serviceIds.length} Categorías Habilitadas</p>
              </div>
@@ -237,11 +237,11 @@ const StaffView: React.FC<StaffViewProps> = ({
                       {currentService?.name}
                     </div>
                     
-                    <div className="w-full py-4 flex flex-col items-center justify-center overflow-hidden">
-                      <h1 className="text-[12vw] sm:text-[10vw] md:text-[8vw] lg:text-[140px] font-black text-slate-900 leading-[0.9] tracking-tighter drop-shadow-sm select-none whitespace-nowrap overflow-hidden text-ellipsis w-full px-2 text-center uppercase">
-                        {activeTicket.code}
-                      </h1>
-                    </div>
+                  <div className="w-full py-4 flex flex-col items-center justify-center overflow-hidden">
+                    <h1 className="text-6xl sm:text-8xl md:text-[10vw] lg:text-[140px] font-black text-slate-900 leading-[0.9] tracking-tighter drop-shadow-sm select-none whitespace-nowrap overflow-hidden text-ellipsis w-full px-2 text-center uppercase">
+                      {activeTicket.code}
+                    </h1>
+                  </div>
                   </div>
 
                   {activeTicket.status === TicketStatus.CALLING ? (
