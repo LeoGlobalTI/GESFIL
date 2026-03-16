@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Ticket, Service, Station, TicketStatus } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import TicketTraceabilityModal from './TicketTraceabilityModal';
+import { formatTimeHHMM } from '../utils/formatters';
 
 interface DashboardViewProps {
   tickets: Ticket[];
@@ -19,10 +20,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
     const completed = tickets.filter(t => t.status === TicketStatus.COMPLETED).length;
     const waiting = tickets.filter(t => t.status === TicketStatus.WAITING).length;
     const cancelled = tickets.filter(t => t.status === TicketStatus.CANCELLED).length;
-    
-    // Solo mostrar servicios que existen en la configuración actual
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const currentTime = formatTimeHHMM(new Date());
 
     const dataByService = services.map(s => {
       const sTickets = tickets.filter(t => t.serviceId === s.id);

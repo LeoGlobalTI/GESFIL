@@ -83,27 +83,26 @@ CREATE OR REPLACE FUNCTION increment_sequence(s_id TEXT)
 RETURNS INTEGER AS $$
 DECLARE
   current_val INTEGER;
-  current_config JSONB;
+  today TEXT;
 BEGIN
-  -- Ensure the row exists
+  today := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
+
+  -- Ensure the row exists and handle daily reset or increment
   INSERT INTO system_config (key, value)
-  VALUES ('nextSequence', '{}'::JSONB)
-  ON CONFLICT (key) DO NOTHING;
-
-  -- Get current config with lock to prevent race conditions
-  SELECT value INTO current_config FROM system_config WHERE key = 'nextSequence' FOR UPDATE;
-
-  -- Get current value for the service or default to 1
-  IF current_config ? s_id THEN
-    current_val := (current_config->>s_id)::INTEGER;
-  ELSE
-    current_val := 1;
-  END IF;
-
-  -- Update with next value
-  UPDATE system_config
-  SET value = jsonb_set(value, ARRAY[s_id], to_jsonb(current_val + 1))
-  WHERE key = 'nextSequence';
+  VALUES ('nextSequence', jsonb_build_object('lastResetDate', today, 'sequences', jsonb_build_object(s_id, 1)))
+  ON CONFLICT (key) DO UPDATE 
+  SET value = CASE 
+    WHEN (system_config.value->>'lastResetDate') != today THEN 
+      jsonb_build_object('lastResetDate', today, 'sequences', jsonb_build_object(s_id, 1))
+    ELSE 
+      jsonb_set(
+        system_config.value,
+        ARRAY['sequences', s_id],
+        to_jsonb(COALESCE((system_config.value->'sequences'->>s_id)::INTEGER, 0) + 1)
+      )
+  END
+  WHERE system_config.key = 'nextSequence'
+  RETURNING (value->'sequences'->>s_id)::INTEGER INTO current_val;
 
   RETURN current_val;
 END;

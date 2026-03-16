@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '../types';
 import { INITIAL_SERVICES, INITIAL_STATIONS } from '../constants';
 import { supabase } from '../services/supabase';
+import { formatTimeHHMM } from '../utils/formatters';
 
 const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000021', username: 'superadmin', password: '123', name: 'Super Administrador', role: UserRole.SUPERADMIN },
@@ -128,7 +129,7 @@ export const useQmsStore = () => {
             if (index !== -1) services[index] = mapServiceFromDb(payload.new);
           }
           if (payload.eventType === 'DELETE') {
-            return { ...prev, services: services.filter(s => s.id === payload.old.id) };
+            return { ...prev, services: services.filter(s => s.id !== payload.old.id) };
           }
           return { ...prev, services };
         });
@@ -142,7 +143,7 @@ export const useQmsStore = () => {
             if (index !== -1) stations[index] = mapStationFromDb(payload.new);
           }
           if (payload.eventType === 'DELETE') {
-            return { ...prev, stations: stations.filter(s => s.id === payload.old.id) };
+            return { ...prev, stations: stations.filter(s => s.id !== payload.old.id) };
           }
           return { ...prev, stations };
         });
@@ -156,7 +157,7 @@ export const useQmsStore = () => {
             if (index !== -1) tickets[index] = mapTicketFromDb(payload.new);
           }
           if (payload.eventType === 'DELETE') {
-            return { ...prev, tickets: tickets.filter(t => t.id === payload.old.id) };
+            return { ...prev, tickets: tickets.filter(t => t.id !== payload.old.id) };
           }
           return { ...prev, tickets };
         });
@@ -176,7 +177,7 @@ export const useQmsStore = () => {
             }
           }
           if (payload.eventType === 'DELETE') {
-            const filtered = users.filter(u => u.id === payload.old.id);
+            const filtered = users.filter(u => u.id !== payload.old.id);
             if (currentUser && currentUser.id === payload.old.id) currentUser = null;
             return { ...prev, users: filtered, currentUser };
           }
@@ -192,7 +193,7 @@ export const useQmsStore = () => {
             if (index !== -1) printers[index] = mapPrinterFromDb(payload.new);
           }
           if (payload.eventType === 'DELETE') {
-            return { ...prev, printers: printers.filter(p => p.id === payload.old.id) };
+            return { ...prev, printers: printers.filter(p => p.id !== payload.old.id) };
           }
           return { ...prev, printers };
         });
@@ -244,16 +245,66 @@ export const useQmsStore = () => {
   const logout = useCallback(() => setState(prev => ({ ...prev, currentUser: null })), []);
 
   const addTicket = useCallback(async (serviceId: string, priority: boolean = false) => {
-    const { data: seq, error: seqError } = await supabase.rpc('increment_sequence', { s_id: serviceId });
-    if (seqError) {
-      console.error('Error incrementing sequence:', seqError);
-      return null;
-    }
-
     const service = state.services.find(s => s.id === serviceId);
     if (!service) return null;
 
-    const code = `${service.prefix}${seq.toString().padStart(4, '0')}`;
+    let currentSeq = 1;
+
+    try {
+      // Get today's start in ISO format
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Count tickets for this service today to determine the next sequence
+      const { count, error } = await supabase
+        .from('tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('service_id', serviceId)
+        .gte('created_at', today.toISOString());
+        
+      if (!error && count !== null) {
+        currentSeq = count + 1;
+      } else {
+        console.warn('Count failed, using fallback sequence generation', error);
+        // Fallback: Use local state
+        const todayStr = today.toISOString().split('T')[0];
+        let config = { ...state.nextSequence };
+        
+        if (config.lastResetDate !== todayStr) {
+          config = { lastResetDate: todayStr, sequences: {} };
+        }
+        
+        if (!config.sequences) config.sequences = {};
+        
+        currentSeq = (config.sequences[serviceId] || 0) + 1;
+        config.sequences[serviceId] = currentSeq;
+        
+        // Update local state immediately for fallback
+        setState(prev => ({
+          ...prev,
+          nextSequence: config
+        }));
+      }
+    } catch (err) {
+      console.error('Error during sequence increment:', err);
+      // If everything fails, use local state as a last resort
+      const todayStr = new Date().toISOString().split('T')[0];
+      let config = { ...state.nextSequence } || { lastResetDate: todayStr, sequences: {} };
+      if (config.lastResetDate !== todayStr) {
+        config = { lastResetDate: todayStr, sequences: {} };
+      }
+      if (!config.sequences) config.sequences = {};
+      currentSeq = (config.sequences[serviceId] || 0) + 1;
+      config.sequences[serviceId] = currentSeq;
+      
+      // Update local state immediately
+      setState(prev => ({
+        ...prev,
+        nextSequence: config
+      }));
+    }
+
+    const code = `${service.prefix}${currentSeq.toString().padStart(4, '0')}`;
 
     const { data, error } = await supabase.from('tickets').insert({
       code,
@@ -268,7 +319,7 @@ export const useQmsStore = () => {
     }
 
     return mapTicketFromDb(data);
-  }, [state.services]);
+  }, [state.services, state.nextSequence]);
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
     const ticket = state.tickets.find(t => t.id === ticketId);
@@ -429,17 +480,28 @@ export const useQmsStore = () => {
 
   const resetSystem = useCallback(async () => {
     // Use window.confirm for better compatibility in iframes
-    if (window.confirm("¿Confirmar purga diaria? Esta acción reiniciará los turnos a 0001 y vaciará la base de datos de tickets del día.")) {
+    if (window.confirm("¿Confirmar purga diaria? Esta acción eliminará todos los tickets y reiniciará los turnos a 0001.")) {
       try {
-        // Delete all tickets
-        const { error: deleteError } = await supabase.from('tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-        if (deleteError) throw deleteError;
+        // Delete all tickets instead of just cancelling them
+        const { error: deleteError } = await supabase
+          .from('tickets')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000'); // Deletes all rows
+          
+        if (deleteError) {
+          console.error('Delete error:', deleteError);
+          throw deleteError;
+        }
         
-        // Reset sequences
-        const { error: upsertError } = await supabase.from('system_config').upsert({ key: 'nextSequence', value: {} });
-        if (upsertError) throw upsertError;
+        // Also reset local state immediately to avoid waiting for realtime
+        const today = new Date().toISOString().split('T')[0];
+        setState(prev => ({
+          ...prev,
+          tickets: [],
+          nextSequence: { lastResetDate: today, sequences: {} }
+        }));
         
-        alert('Sistema purgado correctamente.');
+        alert('Sistema purgado correctamente. Los turnos han sido reiniciados.');
       } catch (error) {
         console.error('Error during system purge:', error);
         alert('Error al purgar el sistema.');
@@ -449,9 +511,7 @@ export const useQmsStore = () => {
 
   const isServiceActive = useCallback((service: Service, stationId?: string) => {
     if (!service.active) return false;
-    
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const currentTime = formatTimeHHMM(new Date());
 
     // If a station is specified, check its specific config for this service
     if (stationId) {
@@ -460,26 +520,24 @@ export const useQmsStore = () => {
         const config = station.serviceConfigs[service.id];
         if (config.startTime && currentTime < config.startTime) return false;
         if (config.endTime && currentTime > config.endTime) return false;
-        return true;
       }
+      // If no config for this service on this station, it's active
+      return true;
     }
 
-    // If no station specified or no station config, check if ANY station can attend it now
-    const attendingStations = state.stations.filter(s => s.active && s.serviceIds.includes(service.id));
-    
-    if (attendingStations.length > 0) {
-      const canBeAttendedNow = attendingStations.some(s => {
-        const config = s.serviceConfigs?.[service.id];
-        if (!config || (!config.startTime && !config.endTime)) return true;
+    // If no station specified, check if it's active in ANY of the stations that support it
+    const stationsWithService = state.stations.filter(s => s.serviceIds.includes(service.id));
+    if (stationsWithService.length === 0) return true; // Not configured for any station, assume active
+
+    return stationsWithService.some(station => {
+      if (station.serviceConfigs && station.serviceConfigs[service.id]) {
+        const config = station.serviceConfigs[service.id];
         if (config.startTime && currentTime < config.startTime) return false;
         if (config.endTime && currentTime > config.endTime) return false;
-        return true;
-      });
-      return canBeAttendedNow;
-    }
-
-    return true;
-  }, [state.stations, tick]);
+      }
+      return true;
+    });
+  }, [state.stations]);
 
   const seedDatabase = useCallback(async () => {
     setLoading(true);

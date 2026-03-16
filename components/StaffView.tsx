@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Ticket, Station, Service, TicketStatus, UserRole } from '../types';
+import { formatTime } from '../utils/formatters';
 
 interface StaffViewProps {
   station: Station | null;
@@ -63,11 +64,6 @@ const StaffView: React.FC<StaffViewProps> = ({
     return () => clearInterval(interval);
   }, [activeTicket?.status, activeTicket?.startedAt]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const getWaitTime = (createdAt: number) => {
     const diff = Math.floor((Date.now() - createdAt) / 60000);
