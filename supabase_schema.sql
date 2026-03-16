@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS stations (
   name TEXT UNIQUE NOT NULL,
   operator_name TEXT,
   service_ids TEXT[] DEFAULT '{}',
+  service_configs JSONB DEFAULT '{}',
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -92,11 +93,11 @@ BEGIN
   -- Get current config with lock to prevent race conditions
   SELECT value INTO current_config FROM system_config WHERE key = 'nextSequence' FOR UPDATE;
 
-  -- Get current value for the service or default to 101
+  -- Get current value for the service or default to 1
   IF current_config ? s_id THEN
     current_val := (current_config->>s_id)::INTEGER;
   ELSE
-    current_val := 101;
+    current_val := 1;
   END IF;
 
   -- Update with next value

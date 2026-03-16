@@ -18,9 +18,7 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
     prefix: '',
     color: '#3b82f6',
     description: '',
-    active: true,
-    startTime: '',
-    endTime: ''
+    active: true
   });
 
   const handleOpenModal = (service?: Service) => {
@@ -31,13 +29,11 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
         prefix: service.prefix,
         color: service.color,
         description: service.description,
-        active: service.active,
-        startTime: service.startTime || '',
-        endTime: service.endTime || ''
+        active: service.active
       });
     } else {
       setEditingService(null);
-      setFormData({ name: '', prefix: '', color: '#3b82f6', description: '', active: true, startTime: '', endTime: '' });
+      setFormData({ name: '', prefix: '', color: '#3b82f6', description: '', active: true });
     }
     setIsModalOpen(true);
   };
@@ -53,13 +49,7 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
   };
 
   const isServiceActive = (service: Service) => {
-    if (!service.active) return false;
-    if (!service.startTime && !service.endTime) return true;
-    const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    if (service.startTime && currentTime < service.startTime) return false;
-    if (service.endTime && currentTime > service.endTime) return false;
-    return true;
+    return service.active;
   };
 
   return (
@@ -107,15 +97,7 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
                  <h4 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">{service.name}</h4>
                  
                  <div className="flex items-center gap-4 mb-6">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                       <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
-                         {service.startTime || '00:00'} - {service.endTime || '23:59'}
-                       </span>
-                    </div>
-                    {(!service.startTime && !service.endTime) && (
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Sin restricción horaria</span>
-                    )}
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Configuración por Módulo</span>
                  </div>
 
                  <p className="text-xs text-slate-400 font-medium leading-relaxed mb-10 line-clamp-2 h-10 italic">
@@ -162,8 +144,8 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Routing Code</label>
-                  <input 
-                    type="text" required maxLength={2}
+                    <input 
+                    type="text" required maxLength={4}
                     value={formData.prefix}
                     onChange={e => setFormData({...formData, prefix: e.target.value.toUpperCase()})}
                     className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 text-center uppercase focus:ring-2 focus:ring-indigo-600/20"
@@ -190,27 +172,6 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-600 resize-none h-24 focus:ring-2 focus:ring-indigo-600/20"
                   placeholder="Defina el alcance de esta unidad de servicio..."
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Hora Apertura</label>
-                  <input 
-                    type="time"
-                    value={formData.startTime}
-                    onChange={e => setFormData({...formData, startTime: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Hora Cierre</label>
-                  <input 
-                    type="time"
-                    value={formData.endTime}
-                    onChange={e => setFormData({...formData, endTime: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                </div>
               </div>
 
               <div className="pt-6 flex gap-4">

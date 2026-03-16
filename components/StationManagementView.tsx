@@ -18,31 +18,75 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
     name: '',
     operatorName: '',
     serviceIds: [] as string[],
+    serviceConfigs: {} as Record<string, { startTime?: string, endTime?: string }>,
     active: true
   });
 
   const handleOpenModal = (station?: Station) => {
     if (station) {
       setEditingStation(station);
+      // Ensure all serviceIds have a config entry, defaulting to service's global times if missing
+      const configs = { ...(station.serviceConfigs || {}) };
+      station.serviceIds.forEach(sid => {
+        if (!configs[sid]) {
+          const service = services.find(s => s.id === sid);
+          configs[sid] = {
+            startTime: service?.startTime || '',
+            endTime: service?.endTime || ''
+          };
+        }
+      });
       setFormData({
         name: station.name,
         operatorName: station.operatorName,
         serviceIds: station.serviceIds,
+        serviceConfigs: configs,
         active: station.active
       });
     } else {
       setEditingStation(null);
-      setFormData({ name: '', operatorName: '', serviceIds: [], active: true });
+      setFormData({ name: '', operatorName: '', serviceIds: [], serviceConfigs: {}, active: true });
     }
     setIsModalOpen(true);
   };
 
   const toggleService = (id: string) => {
+    setFormData(prev => {
+      const isSelected = prev.serviceIds.includes(id);
+      const newServiceIds = isSelected 
+        ? prev.serviceIds.filter(sid => sid !== id)
+        : [...prev.serviceIds, id];
+      
+      const newConfigs = { ...prev.serviceConfigs };
+      if (!isSelected) {
+        // Find default times from service
+        const service = services.find(s => s.id === id);
+        newConfigs[id] = { 
+          startTime: service?.startTime || '', 
+          endTime: service?.endTime || '' 
+        };
+      } else {
+        delete newConfigs[id];
+      }
+
+      return {
+        ...prev,
+        serviceIds: newServiceIds,
+        serviceConfigs: newConfigs
+      };
+    });
+  };
+
+  const updateServiceConfig = (id: string, field: 'startTime' | 'endTime', value: string) => {
     setFormData(prev => ({
       ...prev,
-      serviceIds: prev.serviceIds.includes(id) 
-        ? prev.serviceIds.filter(sid => sid !== id)
-        : [...prev.serviceIds, id]
+      serviceConfigs: {
+        ...prev.serviceConfigs,
+        [id]: {
+          ...prev.serviceConfigs[id],
+          [field]: value
+        }
+      }
     }));
   };
 
@@ -189,6 +233,41 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
                     </button>
                   ))}
                 </div>
+
+                {formData.serviceIds.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Horarios por Servicio</label>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                      {formData.serviceIds.map(sid => {
+                        const s = services.find(srv => srv.id === sid);
+                        if (!s) return null;
+                        return (
+                          <div key={sid} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></div>
+                              <span className="text-[10px] font-black text-slate-700 uppercase">{s.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="time"
+                                value={formData.serviceConfigs[sid]?.startTime || ''}
+                                onChange={e => updateServiceConfig(sid, 'startTime', e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                              <span className="text-[10px] font-black text-slate-300">-</span>
+                              <input 
+                                type="time"
+                                value={formData.serviceConfigs[sid]?.endTime || ''}
+                                onChange={e => updateServiceConfig(sid, 'endTime', e.target.value)}
+                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="pt-6 flex gap-4">

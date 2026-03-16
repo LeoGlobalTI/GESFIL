@@ -31,6 +31,10 @@ export interface Service {
   color: string;
   description: string;
   active: boolean;
+}
+
+export interface StationServiceConfig {
+  serviceId: string;
   startTime?: string; // HH:mm
   endTime?: string;   // HH:mm
 }
@@ -40,6 +44,7 @@ export interface Station {
   name: string;
   operatorName: string;
   serviceIds: string[];
+  serviceConfigs?: Record<string, { startTime?: string, endTime?: string }>;
   active: boolean;
 }
 

@@ -19,9 +19,7 @@ const mapServiceFromDb = (s: any): Service => ({
   prefix: s.prefix,
   color: s.color,
   description: s.description || '',
-  active: s.active,
-  startTime: s.start_time,
-  endTime: s.end_time
+  active: s.active
 });
 
 const mapStationFromDb = (s: any): Station => ({
@@ -29,6 +27,7 @@ const mapStationFromDb = (s: any): Station => ({
   name: s.name,
   operatorName: s.operator_name || '',
   serviceIds: s.service_ids || [],
+  serviceConfigs: s.service_configs || {},
   active: s.active
 });
 
@@ -254,7 +253,7 @@ export const useQmsStore = () => {
     const service = state.services.find(s => s.id === serviceId);
     if (!service) return null;
 
-    const code = `${service.prefix}${seq.toString().padStart(3, '0')}`;
+    const code = `${service.prefix}${seq.toString().padStart(4, '0')}`;
 
     const { data, error } = await supabase.from('tickets').insert({
       code,
@@ -335,18 +334,23 @@ export const useQmsStore = () => {
       password: u.password,
       name: u.name,
       role: u.role,
-      assigned_station_id: u.assignedStationId
+      assigned_station_id: u.assignedStationId || null
     });
   }, []);
 
   const updateUser = useCallback(async (id: string, u: Partial<User>) => {
     const updates: any = { ...u };
-    if (u.assignedStationId !== undefined) updates.assigned_station_id = u.assignedStationId;
+    if (u.assignedStationId !== undefined) {
+      updates.assigned_station_id = u.assignedStationId || null;
+    }
     
     // Security: If role changes from STAFF, clear station assignment
     if (u.role && u.role !== UserRole.STAFF) {
       updates.assigned_station_id = null;
     }
+
+    delete updates.assignedStationId;
+    delete updates.id;
 
     await supabase.from('users').update(updates).eq('id', id);
   }, []);
@@ -361,16 +365,14 @@ export const useQmsStore = () => {
       prefix: s.prefix,
       color: s.color,
       description: s.description,
-      active: s.active,
-      start_time: s.startTime,
-      end_time: s.endTime
+      active: s.active
     });
   }, []);
 
   const updateService = useCallback(async (id: string, s: Partial<Service>) => {
     const updates: any = { ...s };
-    if (s.startTime !== undefined) updates.start_time = s.startTime;
-    if (s.endTime !== undefined) updates.end_time = s.endTime;
+    delete updates.id;
+
     await supabase.from('services').update(updates).eq('id', id);
   }, []);
 
@@ -379,19 +381,32 @@ export const useQmsStore = () => {
   }, []);
 
   const addStation = useCallback(async (s: Omit<Station, 'id'>) => {
-    await supabase.from('stations').insert({
+    const { error } = await supabase.from('stations').insert({
       name: s.name,
       operator_name: s.operatorName,
       service_ids: s.serviceIds,
+      service_configs: s.serviceConfigs || {},
       active: s.active
     });
+    if (error) {
+      console.error('Error adding station:', error);
+      alert('Error al agregar el módulo.');
+    }
   }, []);
 
   const updateStation = useCallback(async (id: string, s: Partial<Station>) => {
-    const updates: any = { ...s };
+    const updates: any = {};
+    if (s.name !== undefined) updates.name = s.name;
     if (s.operatorName !== undefined) updates.operator_name = s.operatorName;
     if (s.serviceIds !== undefined) updates.service_ids = s.serviceIds;
-    await supabase.from('stations').update(updates).eq('id', id);
+    if (s.serviceConfigs !== undefined) updates.service_configs = s.serviceConfigs;
+    if (s.active !== undefined) updates.active = s.active;
+
+    const { error } = await supabase.from('stations').update(updates).eq('id', id);
+    if (error) {
+      console.error('Error updating station:', error);
+      alert('Error al actualizar el módulo.');
+    }
   }, []);
 
   const deleteStation = useCallback(async (id: string) => {
@@ -403,7 +418,9 @@ export const useQmsStore = () => {
   }, []);
 
   const updatePrinter = useCallback(async (id: string, pr: Partial<Printer>) => {
-    await supabase.from('printers').update(pr).eq('id', id);
+    const updates: any = { ...pr };
+    delete updates.id;
+    await supabase.from('printers').update(updates).eq('id', id);
   }, []);
 
   const deletePrinter = useCallback(async (id: string) => {
@@ -411,24 +428,58 @@ export const useQmsStore = () => {
   }, []);
 
   const resetSystem = useCallback(async () => {
-    if (confirm("¿Confirmar purga diaria? Esta acción reiniciará los turnos a 101 y vaciará la base de datos de tickets del día.")) {
-      await supabase.from('tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('system_config').upsert({ key: 'nextSequence', value: {} });
+    // Use window.confirm for better compatibility in iframes
+    if (window.confirm("¿Confirmar purga diaria? Esta acción reiniciará los turnos a 0001 y vaciará la base de datos de tickets del día.")) {
+      try {
+        // Delete all tickets
+        const { error: deleteError } = await supabase.from('tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (deleteError) throw deleteError;
+        
+        // Reset sequences
+        const { error: upsertError } = await supabase.from('system_config').upsert({ key: 'nextSequence', value: {} });
+        if (upsertError) throw upsertError;
+        
+        alert('Sistema purgado correctamente.');
+      } catch (error) {
+        console.error('Error during system purge:', error);
+        alert('Error al purgar el sistema.');
+      }
     }
   }, []);
 
-  const isServiceActive = useCallback((service: Service) => {
+  const isServiceActive = useCallback((service: Service, stationId?: string) => {
     if (!service.active) return false;
-    if (!service.startTime && !service.endTime) return true;
-
+    
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-    if (service.startTime && currentTime < service.startTime) return false;
-    if (service.endTime && currentTime > service.endTime) return false;
+    // If a station is specified, check its specific config for this service
+    if (stationId) {
+      const station = state.stations.find(s => s.id === stationId);
+      if (station && station.serviceConfigs && station.serviceConfigs[service.id]) {
+        const config = station.serviceConfigs[service.id];
+        if (config.startTime && currentTime < config.startTime) return false;
+        if (config.endTime && currentTime > config.endTime) return false;
+        return true;
+      }
+    }
+
+    // If no station specified or no station config, check if ANY station can attend it now
+    const attendingStations = state.stations.filter(s => s.active && s.serviceIds.includes(service.id));
+    
+    if (attendingStations.length > 0) {
+      const canBeAttendedNow = attendingStations.some(s => {
+        const config = s.serviceConfigs?.[service.id];
+        if (!config || (!config.startTime && !config.endTime)) return true;
+        if (config.startTime && currentTime < config.startTime) return false;
+        if (config.endTime && currentTime > config.endTime) return false;
+        return true;
+      });
+      return canBeAttendedNow;
+    }
 
     return true;
-  }, [tick]);
+  }, [state.stations, tick]);
 
   const seedDatabase = useCallback(async () => {
     setLoading(true);
@@ -446,9 +497,7 @@ export const useQmsStore = () => {
         prefix: s.prefix,
         color: s.color,
         description: s.description,
-        active: s.active,
-        start_time: s.startTime,
-        end_time: s.endTime
+        active: s.active
       })));
 
       await supabase.from('stations').insert(INITIAL_STATIONS.map(s => ({
@@ -466,7 +515,7 @@ export const useQmsStore = () => {
         password: u.password,
         name: u.name,
         role: u.role,
-        assigned_station_id: u.assignedStationId
+        assigned_station_id: u.assignedStationId || null
       })));
 
       await supabase.from('system_config').upsert({ key: 'nextSequence', value: {} });

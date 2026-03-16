@@ -3,11 +3,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Ticket, Station, Service, TicketStatus, UserRole } from '../types';
 
 interface StaffViewProps {
-  station: Station;
+  station: Station | null;
   allStations?: Station[];
   tickets: Ticket[];
   services: Service[];
   userRole?: UserRole;
+  isServiceActive: (service: Service, stationId?: string) => boolean;
   onStatusUpdate: (ticketId: string, status: TicketStatus, stationId: string) => void;
   onSelectStation?: (stationId: string) => void;
 }
@@ -18,18 +19,22 @@ const StaffView: React.FC<StaffViewProps> = ({
   tickets, 
   services, 
   userRole,
+  isServiceActive,
   onStatusUpdate,
   onSelectStation 
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPERADMIN;
 
-  const relevantTickets = useMemo(() => 
-    tickets.filter(t => 
-      station.serviceIds.includes(t.serviceId) && 
-      services.some(s => s.id === t.serviceId)
-    ),
-  [tickets, station.serviceIds, services]);
+  const relevantTickets = useMemo(() => {
+    if (!station) return [];
+    return tickets.filter(t => {
+      const service = services.find(s => s.id === t.serviceId);
+      return station.serviceIds.includes(t.serviceId) && 
+             service && 
+             isServiceActive(service, station.id);
+    });
+  }, [tickets, station, services, isServiceActive]);
 
   const waitingTickets = useMemo(() => 
     relevantTickets
@@ -43,7 +48,7 @@ const StaffView: React.FC<StaffViewProps> = ({
       }),
   [relevantTickets]);
   
-  const activeTicket = tickets.find(t => t.stationId === station.id && 
+  const activeTicket = tickets.find(t => station && t.stationId === station.id && 
     (t.status === TicketStatus.CALLING || t.status === TicketStatus.ATTENDING));
 
   useEffect(() => {
@@ -74,7 +79,7 @@ const StaffView: React.FC<StaffViewProps> = ({
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-180px)] w-full max-w-[1600px] mx-auto gap-4 lg:gap-8 p-2 animate-fade-in">
       {/* Sidebar */}
-      {isAdmin && allStations.length > 0 && (
+      {allStations.length > 0 && (
         <aside className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-5">
           <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-50 mb-3">
@@ -83,7 +88,7 @@ const StaffView: React.FC<StaffViewProps> = ({
             
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
               {allStations.map(s => {
-                const isActive = s.id === station.id;
+                const isActive = station && s.id === station.id;
                 const stationWaitingCount = tickets.filter(t => 
                   t.status === TicketStatus.WAITING && s.serviceIds.includes(t.serviceId)
                 ).length;
@@ -139,39 +144,48 @@ const StaffView: React.FC<StaffViewProps> = ({
 
       {/* Main Content */}
       <div className="flex-grow flex flex-col gap-6">
-        <div className="bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-5 w-full sm:w-auto">
-            <div className="w-14 h-14 bg-slate-900 rounded-2xl flex-shrink-0 flex items-center justify-center text-white shadow-xl shadow-slate-200">
-               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operativo</p>
-              </div>
-              <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight truncate">{station.name}</h2>
-              <p className="text-xs text-slate-500 font-bold truncate">Responsable: <span className="text-indigo-600">{station.operatorName}</span></p>
-            </div>
+        {!station ? (
+          <div className="flex-grow flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-slate-100 p-10 text-center space-y-6 shadow-sm">
+            <div className="w-24 h-24 bg-indigo-50 rounded-[2.5rem] flex items-center justify-center text-5xl animate-bounce">📍</div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Seleccione un Módulo</h2>
+            <p className="text-slate-500 font-medium max-w-md leading-relaxed">Para comenzar a atender turnos, por favor seleccione uno de los módulos activos disponibles en el panel lateral.</p>
           </div>
-          
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
-             <div className="text-right hidden md:block">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Servicios Asignados</p>
-                <p className="text-[10px] font-bold text-slate-600">{station.serviceIds.length} Categorías Habilitadas</p>
-             </div>
-             <div className="flex -space-x-2">
-              {station.serviceIds.map(id => {
-                const s = services.find(sv => sv.id === id);
-                if (!s) return null;
-                return (
-                  <div key={id} title={s.name} className="w-10 h-10 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-black text-white shadow-md hover:scale-110 transition-transform cursor-help" style={{ backgroundColor: s.color }}>
-                    {s.prefix}
+        ) : (
+          <>
+            <div className="bg-white p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-5 w-full sm:w-auto">
+                <div className="w-14 h-14 bg-slate-900 rounded-2xl flex-shrink-0 flex items-center justify-center text-white shadow-xl shadow-slate-200">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operativo</p>
                   </div>
-                );
-              })}
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight truncate">{station.name}</h2>
+                  <p className="text-xs text-slate-500 font-bold truncate">Responsable: <span className="text-indigo-600">{station.operatorName}</span></p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
+                 <div className="text-right hidden md:block">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Servicios Asignados</p>
+                    <p className="text-[10px] font-bold text-slate-600">{station.serviceIds.length} Categorías Habilitadas</p>
+                 </div>
+                 <div className="flex -space-x-2">
+                  {station.serviceIds.map(id => {
+                    const s = services.find(sv => sv.id === id);
+                    if (!s) return null;
+                    const isActive = isServiceActive(s, station.id);
+                    return (
+                      <div key={id} title={s.name + (isActive ? '' : ' (Fuera de Horario)')} className={`w-10 h-10 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-black text-white shadow-md hover:scale-110 transition-transform cursor-help ${isActive ? '' : 'grayscale opacity-40'}`} style={{ backgroundColor: s.color }}>
+                        {s.prefix}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 flex-grow">
           <div className="xl:col-span-4 bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/30 border border-slate-100 flex flex-col overflow-hidden">
@@ -301,6 +315,8 @@ const StaffView: React.FC<StaffViewProps> = ({
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
