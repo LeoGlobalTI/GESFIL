@@ -289,7 +289,7 @@ export const useQmsStore = () => {
       console.error('Error during sequence increment:', err);
       // If everything fails, use local state as a last resort
       const todayStr = new Date().toISOString().split('T')[0];
-      let config = { ...state.nextSequence } || { lastResetDate: todayStr, sequences: {} };
+      let config = Object.keys(state.nextSequence).length > 0 ? { ...state.nextSequence } : { lastResetDate: todayStr, sequences: {} };
       if (config.lastResetDate !== todayStr) {
         config = { lastResetDate: todayStr, sequences: {} };
       }

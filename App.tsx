@@ -283,7 +283,7 @@ const StaffController: React.FC<{
   return (
     <StaffView 
       station={activeStation} 
-      allStations={stations.filter(s => s.active)}
+      allStations={isAdmin ? stations.filter(s => s.active) : stations.filter(s => s.id === user.assignedStationId && s.active)}
       tickets={tickets} 
       services={services} 
       userRole={user.role}
