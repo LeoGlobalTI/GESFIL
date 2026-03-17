@@ -9,7 +9,7 @@ import StaffView from '@/components/StaffView';
 import DashboardView from '@/components/DashboardView';
 import TechnicalInfoView from '@/components/TechnicalInfoView';
 import PublicDisplayView from '@/components/PublicDisplayView';
-import LoginView from '@/components/LoginView';
+import LoginViewComponent from '@/components/LoginViewComponent';
 import UserManagementView from '@/components/UserManagementView';
 import ServiceManagementView from '@/components/ServiceManagementView';
 import StationManagementView from '@/components/StationManagementView';
@@ -307,7 +307,7 @@ const App: React.FC = () => {
   const onToggleService = useCallback((id: string, active: boolean) => updateService(id, { active }), [updateService]);
 
   if (!state.currentUser) {
-    return <LoginView onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;
+    return <LoginViewComponent onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;
   }
 
   const role = state.currentUser.role;
