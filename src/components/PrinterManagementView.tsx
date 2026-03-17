@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Printer, PrinterType } from '@/types.ts';
-import { ICONS } from '@/constants.tsx';
-import { PrinterService } from '@/services/PrinterService.ts';
+import { Printer, PrinterType } from '@/types';
+import { ICONS } from '@/constants';
+import { PrinterService } from '@/services/PrinterService';
 
 interface PrinterManagementViewProps {
   printers: Printer[];

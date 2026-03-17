@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Ticket, TicketStatus, Service, Station } from '@/types.ts';
+import { Ticket, TicketStatus, Service, Station } from '@/types';
 
 interface TicketTraceabilityModalProps {
   ticket: Ticket;

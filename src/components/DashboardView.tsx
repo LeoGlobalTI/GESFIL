@@ -1,9 +1,9 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { Ticket, Service, Station, TicketStatus } from '@/types.ts';
+import { Ticket, Service, Station, TicketStatus } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import TicketTraceabilityModal from './TicketTraceabilityModal.tsx';
-import { formatTimeHHMM } from '@/utils/formatters.ts';
+import TicketTraceabilityModal from './TicketTraceabilityModal';
+import { formatTimeHHMM } from '@/utils/formatters';
 
 interface DashboardViewProps {
   tickets: Ticket[];

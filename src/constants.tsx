@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Service, Station } from '@/types.ts';
+import { Service, Station } from '@/types';
 
 // Fix: Added missing 'active' property to initial services
 export const INITIAL_SERVICES: Service[] = [

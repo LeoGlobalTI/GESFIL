@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '@/types.ts';
-import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants.tsx';
-import { supabase } from '@/services/supabase.ts';
-import { formatTimeHHMM } from '@/utils/formatters.ts';
+import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '@/types';
+import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants';
+import { supabase } from '@/services/supabase';
+// Removed formatTimeHHMM as it is no longer used for service status checks
 
 const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000021', username: 'superadmin', password: '123', name: 'Super Administrador', role: UserRole.SUPERADMIN },
@@ -509,35 +509,9 @@ export const useQmsStore = () => {
     }
   }, []);
 
-  const isServiceActive = useCallback((service: Service, stationId?: string) => {
-    if (!service.active) return false;
-    const currentTime = formatTimeHHMM(new Date());
-
-    // If a station is specified, check its specific config for this service
-    if (stationId) {
-      const station = state.stations.find(s => s.id === stationId);
-      if (station && station.serviceConfigs && station.serviceConfigs[service.id]) {
-        const config = station.serviceConfigs[service.id];
-        if (config.startTime && currentTime < config.startTime) return false;
-        if (config.endTime && currentTime > config.endTime) return false;
-      }
-      // If no config for this service on this station, it's active
-      return true;
-    }
-
-    // If no station specified, check if it's active in ANY of the stations that support it
-    const stationsWithService = state.stations.filter(s => s.serviceIds.includes(service.id));
-    if (stationsWithService.length === 0) return true; // Not configured for any station, assume active
-
-    return stationsWithService.some(station => {
-      if (station.serviceConfigs && station.serviceConfigs[service.id]) {
-        const config = station.serviceConfigs[service.id];
-        if (config.startTime && currentTime < config.startTime) return false;
-        if (config.endTime && currentTime > config.endTime) return false;
-      }
-      return true;
-    });
-  }, [state.stations]);
+  const isServiceActive = useCallback((service: Service) => {
+    return service.active;
+  }, []);
 
   const seedDatabase = useCallback(async () => {
     setLoading(true);

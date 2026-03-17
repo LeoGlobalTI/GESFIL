@@ -1,19 +1,19 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { useQmsStore } from '@/state/useQmsStore.ts';
-import { ICONS } from '@/constants.tsx';
-import { UserRole, User, Service, Station, QmsState, Ticket, TicketStatus, Printer } from '@/types.ts';
-import TotemView from '@/components/TotemView.tsx';
-import StaffView from '@/components/StaffView.tsx';
-import DashboardView from '@/components/DashboardView.tsx';
-import TechnicalInfoView from '@/components/TechnicalInfoView.tsx';
-import PublicDisplayView from '@/components/PublicDisplayView.tsx';
-import LoginView from '@/components/LoginView.tsx';
-import UserManagementView from '@/components/UserManagementView.tsx';
-import ServiceManagementView from '@/components/ServiceManagementView.tsx';
-import StationManagementView from '@/components/StationManagementView.tsx';
-import PrinterManagementView from '@/components/PrinterManagementView.tsx';
+import { useQmsStore } from '@/state/useQmsStore';
+import { ICONS } from '@/constants';
+import { UserRole, User, Service, Station, QmsState, Ticket, TicketStatus, Printer } from '@/types';
+import TotemView from '@/components/TotemView';
+import StaffView from '@/components/StaffView';
+import DashboardView from '@/components/DashboardView';
+import TechnicalInfoView from '@/components/TechnicalInfoView';
+import PublicDisplayView from '@/components/PublicDisplayView';
+import LoginView from '@/components/LoginView';
+import UserManagementView from '@/components/UserManagementView';
+import ServiceManagementView from '@/components/ServiceManagementView';
+import StationManagementView from '@/components/StationManagementView';
+import PrinterManagementView from '@/components/PrinterManagementView';
 
 const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> = ({ role, logout, currentUser }) => {
   const location = useLocation();
@@ -250,7 +250,7 @@ const StaffController: React.FC<{
   tickets: Ticket[], 
   services: Service[], 
   stations: Station[],
-  isServiceActive: (service: Service, stationId?: string) => boolean,
+  isServiceActive: (service: Service) => boolean,
   updateTicketStatus: (t: string, s: TicketStatus, st: string) => void 
 }> = ({ user, tickets, services, stations, isServiceActive, updateTicketStatus }) => {
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN;

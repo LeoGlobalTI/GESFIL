@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types.ts';
-import { formatTime } from '@/utils/formatters.ts';
+import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types';
+import { formatTime } from '@/utils/formatters';
 
 interface StaffViewProps {
   station: Station | null;
@@ -9,7 +9,7 @@ interface StaffViewProps {
   tickets: Ticket[];
   services: Service[];
   userRole?: UserRole;
-  isServiceActive: (service: Service, stationId?: string) => boolean;
+  isServiceActive: (service: Service) => boolean;
   onStatusUpdate: (ticketId: string, status: TicketStatus, stationId: string) => void;
   onSelectStation?: (stationId: string) => void;
 }
@@ -33,7 +33,7 @@ const StaffView: React.FC<StaffViewProps> = ({
       const service = services.find(s => s.id === t.serviceId);
       return station.serviceIds.includes(t.serviceId) && 
              service && 
-             isServiceActive(service, station.id);
+             isServiceActive(service);
     });
   }, [tickets, station, services, isServiceActive]);
 
@@ -174,7 +174,7 @@ const StaffView: React.FC<StaffViewProps> = ({
                   {station.serviceIds.map(id => {
                     const s = services.find(sv => sv.id === id);
                     if (!s) return null;
-                    const isActive = isServiceActive(s, station.id);
+                    const isActive = isServiceActive(s);
                     return (
                       <div key={id} title={s.name + (isActive ? '' : ' (Fuera de Horario)')} className={`w-10 h-10 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-black text-white shadow-md hover:scale-110 transition-transform cursor-help ${isActive ? '' : 'grayscale opacity-40'}`} style={{ backgroundColor: s.color }}>
                         {s.prefix}
