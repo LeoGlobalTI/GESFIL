@@ -1,4 +1,4 @@
-import { Printer, PrinterType } from '../types';
+import { Printer, PrinterType } from '@/types';
 
 export class PrinterService {
   static async printTicket(printer: Printer, ticketData: {
@@ -14,7 +14,12 @@ export class PrinterService {
       if (printer.type === PrinterType.USB) {
         return await this.printUSB(printer, ticketData);
       } else if (printer.type === PrinterType.NETWORK) {
-        return await this.printNetwork(printer, ticketData);
+        try {
+          return await this.printNetwork(printer, ticketData);
+        } catch (netError: any) {
+          console.warn("Fallo impresión de red, intentando fallback a navegador:", netError.message);
+          return this.printBrowser(ticketData);
+        }
       } else if (printer.type === PrinterType.BROWSER) {
         return this.printBrowser(ticketData);
       }
@@ -223,10 +228,26 @@ export class PrinterService {
   }
 
   private static async printNetwork(printer: Printer, data: any) {
-    // La impresión de red directa desde el navegador es limitada por CORS y protocolos.
-    // Generalmente requiere un proxy o usar una librería que maneje TCP raw si el navegador lo permite (raro).
-    // Por ahora, simulamos o informamos.
-    console.warn("Impresión de red no implementada directamente en cliente web.");
+    // Si la dirección es una URL, intentamos enviar los datos a un proxy de impresión
+    if (printer.address?.startsWith('http')) {
+      try {
+        const response = await fetch(printer.address, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          mode: 'cors'
+        });
+        if (response.ok) return true;
+        throw new Error(`El proxy respondió con error: ${response.status}`);
+      } catch (e: any) {
+        console.error("Error enviando a proxy de impresión:", e);
+        throw new Error(`Error de conexión con el proxy en ${printer.address}. Verifique que el agente local esté activo.`);
+      }
+    }
+
+    // La impresión de red directa (TCP raw) desde el navegador es limitada por seguridad.
+    // Fallback informativo para guiar al usuario.
+    console.warn("Impresión de red directa no soportada por el navegador.");
     throw new Error("La impresión de red requiere un agente de impresión local o configuración de proxy.");
   }
 }

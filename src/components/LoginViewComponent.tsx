@@ -6,7 +6,7 @@ interface LoginViewProps {
   isInitialized: boolean;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed, isInitialized }) => {
+const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isInitialized }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
@@ -123,4 +123,4 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onSeed, isInitialized })
   );
 };
 
-export default LoginView;
+export default LoginViewComponent;

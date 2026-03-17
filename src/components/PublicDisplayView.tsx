@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Ticket, Station, TicketStatus, Service } from '../types';
+import { Ticket, Station, TicketStatus, Service } from '@/types';
 
 interface PublicDisplayViewProps {
   tickets: Ticket[];
@@ -66,6 +66,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           <div className="grid grid-cols-1 gap-6">
             {activeCalls.map((ticket, idx) => {
               const station = stations.find(s => s.id === ticket.stationId);
+              const service = services.find(s => s.id === ticket.serviceId);
               const isCalling = ticket.status === TicketStatus.CALLING;
 
               return (
@@ -73,13 +74,17 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                   key={ticket.id}
                   className={`flex flex-col sm:flex-row items-center justify-between p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-700 animate-fade-in gap-6 ${
                     isCalling 
-                    ? "bg-indigo-600 border-indigo-400 scale-[1.02] shadow-[0_0_80px_-10px_rgba(79,70,229,0.5)]" 
+                    ? "scale-[1.02] shadow-[0_0_80px_-10px_rgba(79,70,229,0.5)]" 
                     : "bg-slate-900/40 border-slate-800/50"
                   }`}
-                  style={{ animationDelay: `${idx * 0.15}s` }}
+                  style={{ 
+                    animationDelay: `${idx * 0.15}s`,
+                    backgroundColor: isCalling ? (service?.color || '#4f46e5') : undefined,
+                    borderColor: isCalling ? 'rgba(255,255,255,0.2)' : undefined
+                  }}
                 >
                   <div className="flex flex-col items-center sm:items-start">
-                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-indigo-200' : 'text-slate-500'}`}>Paciente</span>
+                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Paciente</span>
                     <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">{ticket.code}</span>
                   </div>
                   
@@ -87,7 +92,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                   <div className="sm:hidden w-full h-[1px] bg-white/10"></div>
                   
                   <div className="text-center sm:text-right">
-                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-indigo-200' : 'text-slate-500'}`}>Módulo</span>
+                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Módulo</span>
                     <div className="flex items-baseline justify-center sm:justify-end gap-3">
                       <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">
                         {station?.name.split(' ').pop() || "00"}

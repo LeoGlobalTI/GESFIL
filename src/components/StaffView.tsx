@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Ticket, Station, Service, TicketStatus, UserRole } from '../types';
+import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types';
+import { formatTime } from '@/utils/formatters';
 
 interface StaffViewProps {
   station: Station | null;
@@ -8,7 +9,7 @@ interface StaffViewProps {
   tickets: Ticket[];
   services: Service[];
   userRole?: UserRole;
-  isServiceActive: (service: Service, stationId?: string) => boolean;
+  isServiceActive: (service: Service) => boolean;
   onStatusUpdate: (ticketId: string, status: TicketStatus, stationId: string) => void;
   onSelectStation?: (stationId: string) => void;
 }
@@ -32,7 +33,7 @@ const StaffView: React.FC<StaffViewProps> = ({
       const service = services.find(s => s.id === t.serviceId);
       return station.serviceIds.includes(t.serviceId) && 
              service && 
-             isServiceActive(service, station.id);
+             isServiceActive(service);
     });
   }, [tickets, station, services, isServiceActive]);
 
@@ -53,9 +54,9 @@ const StaffView: React.FC<StaffViewProps> = ({
 
   useEffect(() => {
     let interval: any;
-    if (activeTicket?.status === TicketStatus.ATTENDING && activeTicket.startedAt) {
+    if (activeTicket?.status === TicketStatus.ATTENDING && activeTicket?.startedAt) {
       interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - activeTicket.startedAt!) / 1000));
+        setElapsedTime(Math.floor((Date.now() - (activeTicket.startedAt || 0)) / 1000));
       }, 1000);
     } else {
       setElapsedTime(0);
@@ -63,11 +64,6 @@ const StaffView: React.FC<StaffViewProps> = ({
     return () => clearInterval(interval);
   }, [activeTicket?.status, activeTicket?.startedAt]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const getWaitTime = (createdAt: number) => {
     const diff = Math.floor((Date.now() - createdAt) / 60000);
@@ -170,13 +166,15 @@ const StaffView: React.FC<StaffViewProps> = ({
               <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
                  <div className="text-right hidden md:block">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Servicios Asignados</p>
-                    <p className="text-[10px] font-bold text-slate-600">{station.serviceIds.length} Categorías Habilitadas</p>
+                    <p className="text-[10px] font-bold text-slate-600">
+                      {station.serviceIds.filter(id => services.some(s => s.id === id)).length} Categorías Habilitadas
+                    </p>
                  </div>
                  <div className="flex -space-x-2">
                   {station.serviceIds.map(id => {
                     const s = services.find(sv => sv.id === id);
                     if (!s) return null;
-                    const isActive = isServiceActive(s, station.id);
+                    const isActive = isServiceActive(s);
                     return (
                       <div key={id} title={s.name + (isActive ? '' : ' (Fuera de Horario)')} className={`w-10 h-10 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-black text-white shadow-md hover:scale-110 transition-transform cursor-help ${isActive ? '' : 'grayscale opacity-40'}`} style={{ backgroundColor: s.color }}>
                         {s.prefix}
@@ -252,8 +250,11 @@ const StaffView: React.FC<StaffViewProps> = ({
                     </div>
                     
                   <div className="w-full py-4 flex flex-col items-center justify-center overflow-hidden">
-                    <h1 className="text-6xl sm:text-8xl md:text-[10vw] lg:text-[140px] font-black text-slate-900 leading-[0.9] tracking-tighter drop-shadow-sm select-none whitespace-nowrap overflow-hidden text-ellipsis w-full px-2 text-center uppercase">
-                      {activeTicket.code}
+                    <h1 
+                      className="text-6xl sm:text-8xl md:text-[10vw] lg:text-[140px] font-black leading-[0.9] tracking-tighter drop-shadow-sm select-none whitespace-nowrap overflow-hidden text-ellipsis w-full px-2 text-center uppercase"
+                      style={{ color: currentService?.color || '#0f172a' }}
+                    >
+                      {activeTicket?.code || '---'}
                     </h1>
                   </div>
                   </div>

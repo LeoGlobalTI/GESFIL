@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Printer, PrinterType } from '../types';
-import { ICONS } from '../constants';
-import { PrinterService } from '../services/PrinterService';
+import { Printer, PrinterType } from '@/types';
+import { ICONS } from '@/constants';
+import { PrinterService } from '@/services/PrinterService';
 
 interface PrinterManagementViewProps {
   printers: Printer[];
@@ -191,15 +191,20 @@ const PrinterManagementView: React.FC<PrinterManagementViewProps> = ({ printers,
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                {newPrinter.type === PrinterType.NETWORK ? 'Dirección IP' : 'Identificador USB'}
+                {newPrinter.type === PrinterType.NETWORK ? 'Dirección IP o URL de Proxy' : 'Identificador USB'}
               </label>
               <input
                 type="text"
-                placeholder={newPrinter.type === PrinterType.NETWORK ? '192.168.1.100' : 'USB001'}
+                placeholder={newPrinter.type === PrinterType.NETWORK ? '192.168.1.100 o http://localhost:5000' : 'USB001'}
                 value={newPrinter.address}
                 onChange={e => setNewPrinter({ ...newPrinter, address: e.target.value })}
                 className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
               />
+              {newPrinter.type === PrinterType.NETWORK && (
+                <p className="text-[9px] text-slate-400 mt-1 px-1">
+                  Use una IP para modo manual (requiere diálogo) o una URL (http://...) para impresión silenciosa vía proxy.
+                </p>
+              )}
             </div>
             {newPrinter.type === PrinterType.NETWORK && (
               <div className="space-y-2">

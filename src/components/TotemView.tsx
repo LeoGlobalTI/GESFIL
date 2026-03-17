@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Service, Printer, PrinterType } from '../types';
-import { PrinterService } from '../services/PrinterService';
+import { Service, Printer, PrinterType } from '@/types';
+import { PrinterService } from '@/services/PrinterService';
 
 interface TotemViewProps {
   services: Service[];

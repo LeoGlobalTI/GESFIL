@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Service } from '../types';
+import { Service } from '@/types';
 
 interface ServiceManagementViewProps {
   services: Service[];
