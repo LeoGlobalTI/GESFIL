@@ -20,22 +20,28 @@ interface IssuedTicketInfo {
 const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTicket, printers }) => {
   const [issuedTicket, setIssuedTicket] = useState<IssuedTicketInfo | null>(null);
   const [isPriority, setIsPriority] = useState<boolean | null>(null);
+  const [isIssuing, setIsIssuing] = useState(false);
 
   const handleIssue = async (service: Service) => {
-    if (isPriority === null) return;
+    if (isPriority === null || isIssuing) return;
+    setIsIssuing(true);
 
-    // Emitimos el ticket al store y esperamos el resultado real
-    const ticket = await onIssueTicket(service.id, isPriority);
-    
-    if (ticket) {
-      // Mostramos la pantalla de éxito con el código real retornado por la DB
-      setIssuedTicket({
-        code: ticket.code,
-        serviceName: service.name,
-        color: service.color,
-        prefix: service.prefix,
-        isPriority
-      });
+    try {
+      // Emitimos el ticket al store y esperamos el resultado real
+      const ticket = await onIssueTicket(service.id, isPriority);
+      
+      if (ticket) {
+        // Mostramos la pantalla de éxito con el código real retornado por la DB
+        setIssuedTicket({
+          code: ticket.code,
+          serviceName: service.name,
+          color: service.color,
+          prefix: service.prefix,
+          isPriority
+        });
+      }
+    } finally {
+      setIsIssuing(false);
     }
   };
 

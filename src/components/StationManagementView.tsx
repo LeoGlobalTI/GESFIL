@@ -25,14 +25,13 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
   const handleOpenModal = (station?: Station) => {
     if (station) {
       setEditingStation(station);
-      // Ensure all serviceIds have a config entry, defaulting to service's global times if missing
+      // Ensure all serviceIds have a config entry
       const configs = { ...(station.serviceConfigs || {}) };
       station.serviceIds.forEach(sid => {
         if (!configs[sid]) {
-          const service = services.find(s => s.id === sid);
           configs[sid] = {
-            startTime: service?.startTime || '',
-            endTime: service?.endTime || ''
+            startTime: '',
+            endTime: ''
           };
         }
       });
@@ -59,11 +58,9 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
       
       const newConfigs = { ...prev.serviceConfigs };
       if (!isSelected) {
-        // Find default times from service
-        const service = services.find(s => s.id === id);
         newConfigs[id] = { 
-          startTime: service?.startTime || '', 
-          endTime: service?.endTime || '' 
+          startTime: '', 
+          endTime: '' 
         };
       } else {
         delete newConfigs[id];

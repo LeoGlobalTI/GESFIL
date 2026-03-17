@@ -509,8 +509,20 @@ export const useQmsStore = () => {
     }
   }, []);
 
-  const isServiceActive = useCallback((service: Service) => {
-    return service.active;
+  const isServiceActive = useCallback((service: Service, station?: Station) => {
+    if (!service.active) return false;
+    
+    // If a station is provided, check its specific service configuration
+    if (station && station.serviceConfigs && station.serviceConfigs[service.id]) {
+      const config = station.serviceConfigs[service.id];
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      
+      if (config.startTime && currentTime < config.startTime) return false;
+      if (config.endTime && currentTime > config.endTime) return false;
+    }
+    
+    return true;
   }, []);
 
   const seedDatabase = useCallback(async () => {

@@ -24,10 +24,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
 
     const dataByService = services.map(s => {
       const sTickets = tickets.filter(t => t.serviceId === s.id);
-      const isClosed = (s.startTime && currentTime < s.startTime) || (s.endTime && currentTime > s.endTime);
       
       return {
-        name: isClosed ? `${s.name} (Cerrado)` : s.name,
+        name: s.name,
         value: sTickets.length,
         color: s.color || '#4f46e5'
       };

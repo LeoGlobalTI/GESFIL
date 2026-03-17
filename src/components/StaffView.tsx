@@ -27,13 +27,25 @@ const StaffView: React.FC<StaffViewProps> = ({
   const [elapsedTime, setElapsedTime] = useState(0);
   const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPERADMIN;
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleStatusUpdate = async (ticketId: string, status: TicketStatus, stationId: string) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+    try {
+      await onStatusUpdate(ticketId, status, stationId);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const relevantTickets = useMemo(() => {
     if (!station) return [];
     return tickets.filter(t => {
       const service = services.find(s => s.id === t.serviceId);
       return station.serviceIds.includes(t.serviceId) && 
              service && 
-             isServiceActive(service);
+             isServiceActive(service, station);
     });
   }, [tickets, station, services, isServiceActive]);
 
@@ -174,7 +186,7 @@ const StaffView: React.FC<StaffViewProps> = ({
                   {station.serviceIds.map(id => {
                     const s = services.find(sv => sv.id === id);
                     if (!s) return null;
-                    const isActive = isServiceActive(s);
+                    const isActive = isServiceActive(s, station);
                     return (
                       <div key={id} title={s.name + (isActive ? '' : ' (Fuera de Horario)')} className={`w-10 h-10 rounded-full border-[3px] border-white flex items-center justify-center text-[10px] font-black text-white shadow-md hover:scale-110 transition-transform cursor-help ${isActive ? '' : 'grayscale opacity-40'}`} style={{ backgroundColor: s.color }}>
                         {s.prefix}
@@ -224,8 +236,8 @@ const StaffView: React.FC<StaffViewProps> = ({
                         </div>
                       </div>
                       <button 
-                        onClick={() => onStatusUpdate(t.id, TicketStatus.CALLING, station.id)}
-                        disabled={!!activeTicket}
+                        onClick={() => handleStatusUpdate(t.id, TicketStatus.CALLING, station.id)}
+                        disabled={!!activeTicket || isProcessing}
                         className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 disabled:opacity-20 transition-all shadow-xl shadow-indigo-100 flex items-center gap-2"
                       >
                         Llamar
@@ -267,14 +279,16 @@ const StaffView: React.FC<StaffViewProps> = ({
 
                       <div className="flex flex-col sm:flex-row justify-center gap-4 max-w-lg mx-auto w-full">
                         <button 
-                          onClick={() => onStatusUpdate(activeTicket.id, TicketStatus.ATTENDING, station.id)}
-                          className="flex-[2] py-6 bg-indigo-600 text-white font-black rounded-3xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 transition-all text-xl flex items-center justify-center gap-3"
+                          onClick={() => handleStatusUpdate(activeTicket.id, TicketStatus.ATTENDING, station.id)}
+                          disabled={isProcessing}
+                          className="flex-[2] py-6 bg-indigo-600 text-white font-black rounded-3xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition-all text-xl flex items-center justify-center gap-3"
                         >
                           Iniciar Atención
                         </button>
                         <button 
-                          onClick={() => onStatusUpdate(activeTicket.id, TicketStatus.CANCELLED, station.id)}
-                          className="flex-1 py-6 bg-rose-50 text-rose-600 font-black rounded-3xl border border-rose-100 transition-all text-[11px] uppercase tracking-widest"
+                          onClick={() => handleStatusUpdate(activeTicket.id, TicketStatus.CANCELLED, station.id)}
+                          disabled={isProcessing}
+                          className="flex-1 py-6 bg-rose-50 text-rose-600 font-black rounded-3xl border border-rose-100 disabled:opacity-50 transition-all text-[11px] uppercase tracking-widest"
                         >
                           No se presentó
                         </button>
@@ -293,8 +307,9 @@ const StaffView: React.FC<StaffViewProps> = ({
 
                       <div className="flex justify-center w-full">
                         <button 
-                          onClick={() => onStatusUpdate(activeTicket.id, TicketStatus.COMPLETED, station.id)}
-                          className="w-full max-w-md py-6 bg-emerald-600 text-white font-black rounded-3xl shadow-2xl shadow-emerald-100 hover:bg-emerald-700 transition-all text-xl flex items-center justify-center gap-3"
+                          onClick={() => handleStatusUpdate(activeTicket.id, TicketStatus.COMPLETED, station.id)}
+                          disabled={isProcessing}
+                          className="w-full max-w-md py-6 bg-emerald-600 text-white font-black rounded-3xl shadow-2xl shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-50 transition-all text-xl flex items-center justify-center gap-3"
                         >
                           Completar Trámite
                         </button>
