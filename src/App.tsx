@@ -1,19 +1,19 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { useQmsStore } from './state/useQmsStore';
-import { ICONS } from './constants';
-import { UserRole, User, Service, Station, QmsState, Ticket, TicketStatus, Printer } from './types';
-import TotemView from './components/TotemView';
-import StaffView from './components/StaffView';
-import DashboardView from './components/DashboardView';
-import TechnicalInfoView from './components/TechnicalInfoView';
-import PublicDisplayView from './components/PublicDisplayView';
-import LoginView from './components/LoginView';
-import UserManagementView from './components/UserManagementView';
-import ServiceManagementView from './components/ServiceManagementView';
-import StationManagementView from './components/StationManagementView';
-import PrinterManagementView from './components/PrinterManagementView';
+import { useQmsStore } from '@/state/useQmsStore';
+import { ICONS } from '@/constants';
+import { UserRole, User, Service, Station, QmsState, Ticket, TicketStatus, Printer } from '@/types';
+import TotemView from '@/components/TotemView';
+import StaffView from '@/components/StaffView';
+import DashboardView from '@/components/DashboardView';
+import TechnicalInfoView from '@/components/TechnicalInfoView';
+import PublicDisplayView from '@/components/PublicDisplayView';
+import LoginView from '@/components/LoginView';
+import UserManagementView from '@/components/UserManagementView';
+import ServiceManagementView from '@/components/ServiceManagementView';
+import StationManagementView from '@/components/StationManagementView';
+import PrinterManagementView from '@/components/PrinterManagementView';
 
 const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> = ({ role, logout, currentUser }) => {
   const location = useLocation();
