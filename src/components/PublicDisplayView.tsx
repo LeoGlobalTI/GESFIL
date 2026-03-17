@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Ticket, Station, TicketStatus, Service } from '@/types';
+import { Ticket, Station, TicketStatus, Service } from '@/types.ts';
 
 interface PublicDisplayViewProps {
   tickets: Ticket[];

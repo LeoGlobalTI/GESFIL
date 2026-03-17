@@ -1,4 +1,4 @@
-import { Printer, PrinterType } from '@/types';
+import { Printer, PrinterType } from '@/types.ts';
 
 export class PrinterService {
   static async printTicket(printer: Printer, ticketData: {

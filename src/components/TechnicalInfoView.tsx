@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { QmsState, UserRole } from '@/types';
+import { QmsState, UserRole } from '@/types.ts';
 
 interface TechnicalInfoViewProps {
   state: QmsState;

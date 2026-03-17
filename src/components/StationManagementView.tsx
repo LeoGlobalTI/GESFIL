@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Station, Service } from '@/types';
+import { Station, Service } from '@/types.ts';
 
 interface StationManagementViewProps {
   stations: Station[];

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types';
-import { formatTime } from '@/utils/formatters';
+import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types.ts';
+import { formatTime } from '@/utils/formatters.ts';
 
 interface StaffViewProps {
   station: Station | null;

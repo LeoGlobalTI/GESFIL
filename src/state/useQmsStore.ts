@@ -1,9 +1,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '@/types';
-import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants';
-import { supabase } from '@/services/supabase';
-import { formatTimeHHMM } from '@/utils/formatters';
+import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '@/types.ts';
+import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants.tsx';
+import { supabase } from '@/services/supabase.ts';
+import { formatTimeHHMM } from '@/utils/formatters.ts';
 
 const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000021', username: 'superadmin', password: '123', name: 'Super Administrador', role: UserRole.SUPERADMIN },
