@@ -16,7 +16,7 @@ const PrinterManagementView: React.FC<PrinterManagementViewProps> = ({ printers,
     name: '',
     type: PrinterType.NETWORK,
     address: '',
-    port: 9100,
+    port: 515,
     active: true
   });
 
@@ -28,7 +28,7 @@ const PrinterManagementView: React.FC<PrinterManagementViewProps> = ({ printers,
       name: '',
       type: PrinterType.NETWORK,
       address: '',
-      port: 9100,
+      port: 515,
       active: true
     });
   };
@@ -195,14 +195,14 @@ const PrinterManagementView: React.FC<PrinterManagementViewProps> = ({ printers,
               </label>
               <input
                 type="text"
-                placeholder={newPrinter.type === PrinterType.NETWORK ? '192.168.1.100 o http://localhost:5000' : 'USB001'}
+                placeholder={newPrinter.type === PrinterType.NETWORK ? '192.168.1.100' : 'USB001'}
                 value={newPrinter.address}
                 onChange={e => setNewPrinter({ ...newPrinter, address: e.target.value })}
                 className="w-full px-5 py-3.5 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-sm"
               />
               {newPrinter.type === PrinterType.NETWORK && (
                 <p className="text-[9px] text-slate-400 mt-1 px-1">
-                  Use una IP para modo manual (requiere diálogo) o una URL (http://...) para impresión silenciosa vía proxy.
+                  Ingrese la IP de su Print Server (StarTech). El sistema enviará el ticket directamente vía TCP Raw (Puerto 9100).
                 </p>
               )}
             </div>

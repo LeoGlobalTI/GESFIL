@@ -228,26 +228,23 @@ export class PrinterService {
   }
 
   private static async printNetwork(printer: Printer, data: any) {
-    // Si la dirección es una URL, intentamos enviar los datos a un proxy de impresión
-    if (printer.address?.startsWith('http')) {
-      try {
-        const response = await fetch(printer.address, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-          mode: 'cors'
-        });
-        if (response.ok) return true;
-        throw new Error(`El proxy respondió con error: ${response.status}`);
-      } catch (e: any) {
-        console.error("Error enviando a proxy de impresión:", e);
-        throw new Error(`Error de conexión con el proxy en ${printer.address}. Verifique que el agente local esté activo.`);
-      }
+    // Intentamos imprimir a través del proxy del servidor local
+    try {
+      const response = await fetch('/api/print', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ printer, data }),
+      });
+      
+      if (response.ok) return true;
+      
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Error del servidor: ${response.status}`);
+    } catch (e: any) {
+      console.error("Error en impresión de red (proxy):", e);
+      // Si falla el proxy (por ejemplo, en desarrollo sin el servidor activo o error de red),
+      // lanzamos el error para que el llamador decida si usar fallback
+      throw new Error(`No se pudo conectar con el servidor de impresión en ${printer.address}:${printer.port || 9100}. ${e.message}`);
     }
-
-    // La impresión de red directa (TCP raw) desde el navegador es limitada por seguridad.
-    // Fallback informativo para guiar al usuario.
-    console.warn("Impresión de red directa no soportada por el navegador.");
-    throw new Error("La impresión de red requiere un agente de impresión local o configuración de proxy.");
   }
 }
