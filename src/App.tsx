@@ -95,6 +95,7 @@ const AdminPanel: React.FC<{
 }> = ({ state, reset, seed, userRole, users, onAddUser, onUpdateUser, onDeleteUser, services, onAddService, onUpdateService, onDeleteService, stations, onAddStation, onUpdateStation, onDeleteStation, printers, onAddPrinter, onUpdatePrinter, onDeletePrinter, onToggleService }) => {
   const [activeTab, setActiveTab] = useState<'users' | 'services' | 'stations' | 'analytics' | 'printers'>('users');
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showSeedModal, setShowSeedModal] = useState(false);
 
   return (
     <div className="max-w-[1600px] mx-auto px-6 py-10 space-y-8 animate-fade-in pb-40">
@@ -104,6 +105,16 @@ const AdminPanel: React.FC<{
         onConfirm={reset}
         title="Purgar Sistema"
         message="¿Confirmar purga diaria? Esta acción eliminará todos los tickets y reiniciará los turnos a 0001."
+      />
+      <ConfirmationModal 
+        isOpen={showSeedModal}
+        onClose={() => setShowSeedModal(false)}
+        onConfirm={() => {
+          setShowSeedModal(false);
+          seed();
+        }}
+        title="Inicializar Base de Datos"
+        message="¿Está seguro de que desea inicializar la base de datos? Esta acción eliminará TODOS los datos actuales (tickets, módulos, servicios, usuarios excepto superadmin) y cargará los datos por defecto. Esta acción es irreversible."
       />
       {/* Superadmin Executive Master Header */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -213,7 +224,7 @@ const AdminPanel: React.FC<{
                      Purgar Sistema
                    </button>
                    <button 
-                     onClick={seed}
+                     onClick={() => setShowSeedModal(true)}
                      className="w-full py-4 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20 font-black hover:bg-indigo-500 hover:text-white transition-all duration-300 uppercase tracking-widest text-[9px]"
                    >
                      Inicializar DB

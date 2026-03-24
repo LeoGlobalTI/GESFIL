@@ -155,7 +155,7 @@ const PrinterManagementView: React.FC<PrinterManagementViewProps> = ({ printers,
     }
   };
 
-  const copyBridgeCode = () => {
+  const downloadBridgeCode = () => {
     const code = `const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -164,38 +164,79 @@ const path = require('path');
 
 const app = express();
 
-// Configuración de red del usuario
+// --- CONFIGURACIÓN DE TU IMPRESORA ---
 const EQUIPO = "lnunez";
 const IMPRESORA = "epsontm";
+const PUERTO = 3001;
 
-app.use(cors());
+// Configuración de CORS total para evitar "Failed to fetch"
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.text({ type: '*/*', limit: '1mb' })); 
 
+// Manejador explícito para OPTIONS (Pre-flight)
+app.options('*', cors());
+
 app.post('/imprimir', (req, res) => {
+    console.log(\`[\${new Date().toLocaleTimeString()}] Petición de impresión recibida...\`);
     const ticketData = req.body;
+    
+    if (!ticketData) {
+        console.error(">>> Error: No se recibió contenido en el ticket.");
+        return res.status(400).json({ success: false, error: "Contenido vacío" });
+    }
+
     const tempFilePath = path.join(__dirname, 'temp_ticket.bin');
 
-    // Escribir los comandos ESC/POS al archivo binario
-    fs.writeFileSync(tempFilePath, ticketData, 'binary');
+    try {
+        // Escribir los comandos ESC/POS al archivo binario
+        fs.writeFileSync(tempFilePath, ticketData, 'binary');
 
-    // Comando para inyectar al spooler de Windows
-    const comando = \`copy /b "\${tempFilePath}" "\\\\\\\\\${EQUIPO}\\\\\${IMPRESORA}"\`;
+        // Comando para inyectar al spooler de Windows
+        const comando = \`copy /b "\${tempFilePath}" "\\\\\\\\\${EQUIPO}\\\\\${IMPRESORA}"\`;
+        
+        console.log(\`>>> Ejecutando: \${comando}\`);
 
-    exec(comando, (error) => {
-        if (error) {
-            console.error(\`Error: \${error.message}\`);
-            return res.status(500).json({ success: false, error: error.message });
-        }
-        res.json({ success: true });
-    });
+        exec(comando, (error) => {
+            if (error) {
+                console.error(\`>>> Error de Windows: \${error.message}\`);
+                return res.status(500).json({ success: false, error: error.message });
+            }
+            console.log(">>> Ticket enviado a la cola de impresión con éxito.");
+            res.json({ success: true });
+        });
+    } catch (err) {
+        console.error(\`>>> Error de Sistema: \${err.message}\`);
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
-app.listen(3001, '0.0.0.0', () => {
-    console.log(\`>>> Bridge GESFIL activo en http://localhost:3001\`);
-    console.log(\`>>> Imprimiendo en: \\\\\\\\\${EQUIPO}\\\\\${IMPRESORA}\`);
+// Ruta de salud para verificar conexión
+app.get('/health', (req, res) => res.json({ status: 'ok', message: 'Bridge GESFIL activo' }));
+
+app.listen(PUERTO, '0.0.0.0', () => {
+    console.log(\`\\n========================================\`);
+    console.log(\`   BRIDGE GESFIL ACTIVO EN PUERTO \${PUERTO}\`);
+    console.log(\`========================================\`);
+    console.log(\`1. URL en App: http://localhost:\${PUERTO}/imprimir\`);
+    console.log(\`2. Impresora: \\\\\\\\\${EQUIPO}\\\\\${IMPRESORA}\`);
+    console.log(\`3. Estado: Esperando peticiones...\\n\`);
 });`;
-    navigator.clipboard.writeText(code);
-    alert("Código del Bridge copiado al portapapeles. Guárdelo como 'server.js' y ejecútelo con 'node server.js' en su PC.");
+    
+    const blob = new Blob([code], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'server.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert("Archivo 'server.js' descargado. Ejecútelo con 'node server.js' en su PC.");
   };
 
   return (
@@ -207,11 +248,11 @@ app.listen(3001, '0.0.0.0', () => {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={copyBridgeCode}
-            className="px-5 py-3 bg-slate-100 text-slate-600 border-2 border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center gap-2"
+            onClick={downloadBridgeCode}
+            className="px-5 py-3 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            Copiar Bridge.js
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar Bridge.js
           </button>
           <button
             onClick={() => {

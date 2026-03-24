@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Station, Service } from '@/types';
+import ConfirmationModal from './ConfirmationModal';
 
 interface StationManagementViewProps {
   stations: Station[];
@@ -13,6 +14,8 @@ interface StationManagementViewProps {
 const StationManagementView: React.FC<StationManagementViewProps> = ({ stations, services, onAdd, onUpdate, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [stationToDelete, setStationToDelete] = useState<Station | null>(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -167,7 +170,7 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                       </button>
                       <button 
-                        onClick={() => confirm(`¿Eliminar "${station.name}"?`) && onDelete(station.id)}
+                        onClick={() => { setStationToDelete(station); setShowDeleteModal(true); }}
                         className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
@@ -180,6 +183,19 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
           </table>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => {
+          if (stationToDelete) {
+            onDelete(stationToDelete.id);
+            setStationToDelete(null);
+          }
+        }}
+        title="Eliminar Módulo"
+        message={`¿Estás seguro de que deseas eliminar el módulo "${stationToDelete?.name}"? Esta acción no se puede deshacer.`}
+      />
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">

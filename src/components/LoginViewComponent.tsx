@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ConfirmationModal from './ConfirmationModal';
 
 interface LoginViewProps {
   onLogin: (username: string, password?: string) => Promise<boolean>;
@@ -12,6 +13,7 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [showSeedModal, setShowSeedModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,19 +33,25 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
   };
 
   const handleSeed = async () => {
-    const message = isInitialized 
-      ? "¡ADVERTENCIA! La base de datos ya parece estar inicializada. Ejecutar esta acción sincronizará los datos por defecto y podría sobrescribir configuraciones manuales. ¿Estás seguro de que deseas continuar?"
-      : "¿Deseas inicializar la base de datos con los datos por defecto (incluyendo el usuario superadmin)?";
-
-    if (confirm(message)) {
-      setSeeding(true);
-      await onSeed();
-      setSeeding(false);
-    }
+    setSeeding(true);
+    await onSeed();
+    setSeeding(false);
+    setShowSeedModal(false);
   };
+
+  const seedMessage = isInitialized 
+    ? "¡ADVERTENCIA! La base de datos ya parece estar inicializada. Ejecutar esta acción sincronizará los datos por defecto y podría sobrescribir configuraciones manuales. ¿Estás seguro de que deseas continuar?"
+    : "¿Deseas inicializar la base de datos con los datos por defecto (incluyendo el usuario superadmin)?";
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc]">
+      <ConfirmationModal
+        isOpen={showSeedModal}
+        onClose={() => setShowSeedModal(false)}
+        onConfirm={handleSeed}
+        title="Inicializar Base de Datos"
+        message={seedMessage}
+      />
       <div className="max-w-[440px] w-full animate-fade-in">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
@@ -102,7 +110,7 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
             </div>
             <button 
               type="button"
-              onClick={handleSeed}
+              onClick={() => setShowSeedModal(true)}
               disabled={seeding}
               className={`text-center w-full py-2 rounded-xl border transition-colors ${
                 isInitialized 
