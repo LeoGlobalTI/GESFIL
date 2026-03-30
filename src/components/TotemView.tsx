@@ -24,19 +24,6 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
 
   const handleIssue = async (service: Service) => {
     if (isPriority === null || isIssuing) return;
-
-    // 1. Pre-abrir ventana si es necesario (para evitar bloqueadores de popups)
-    let printWindow: Window | null = null;
-    const activePrinters = printers.filter(p => p.active);
-    const needsBrowser = activePrinters.length === 0 || activePrinters.some(p => p.type === PrinterType.BROWSER);
-    
-    if (needsBrowser) {
-      printWindow = window.open('', '_blank', 'width=300,height=450');
-      if (printWindow) {
-        printWindow.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#64748b;text-align:center;padding:20px;">Generando ticket...</body></html>');
-      }
-    }
-
     setIsIssuing(true);
 
     try {
@@ -52,8 +39,19 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
           prefix: service.prefix,
           isPriority
         });
+      }
+    } finally {
+      setIsIssuing(false);
+    }
+  };
 
-        // --- Lógica de Impresión Inmediata ---
+  // Temporizador para volver al menú principal (3 segundos) y disparar impresión
+  useEffect(() => {
+    if (issuedTicket) {
+      // Intentar impresión física si hay impresoras configuradas
+      const activePrinters = printers.filter(p => p.active);
+      
+      if (activePrinters.length > 0) {
         const now = new Date();
         const fechaStr = now.toLocaleDateString('es-CL');
         const horaStr = now.toLocaleTimeString('es-CL', { 
@@ -63,53 +61,58 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
         }).toLowerCase().replace(' ', ' p. m.');
 
         const ticketData = {
-          code: ticket.code,
-          prefix: service.prefix,
-          number: ticket.code.replace(service.prefix, ''),
-          serviceName: service.name,
-          isPriority,
+          code: issuedTicket.code,
+          prefix: issuedTicket.prefix,
+          number: issuedTicket.code.replace(issuedTicket.prefix, ''),
+          serviceName: issuedTicket.serviceName,
+          isPriority: issuedTicket.isPriority,
           date: fechaStr,
           time: horaStr
         };
 
-        if (activePrinters.length > 0) {
-          activePrinters.forEach(printer => {
-            PrinterService.printTicket(printer, ticketData, printer.type === PrinterType.BROWSER ? printWindow : undefined).catch(err => {
-              console.error(`Error imprimiendo en ${printer.name}:`, err);
-            });
+        // Imprimir en todas las impresoras activas
+        activePrinters.forEach(printer => {
+          PrinterService.printTicket(printer, ticketData).catch(err => {
+            console.error(`Error imprimiendo en ${printer.name}:`, err);
           });
-        } else {
-          // Si no hay impresoras configuradas, usamos el modo navegador como fallback
-          const virtualPrinter: Printer = {
-            id: 'virtual-browser',
-            name: 'Navegador',
-            type: PrinterType.BROWSER,
-            address: '',
-            active: true
-          };
-          PrinterService.printTicket(virtualPrinter, ticketData, printWindow).catch(err => {
-            console.error("Error en impresión virtual:", err);
-          });
-        }
+        });
       } else {
-        if (printWindow) printWindow.close();
-      }
-    } catch (error) {
-      if (printWindow) printWindow.close();
-      console.error('Error issuing ticket:', error);
-    } finally {
-      setIsIssuing(false);
-    }
-  };
+        // Si no hay impresoras configuradas, usamos el modo navegador como fallback limpio
+        const now = new Date();
+        const fechaStr = now.toLocaleDateString('es-CL');
+        const horaStr = now.toLocaleTimeString('es-CL', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: true 
+        }).toLowerCase().replace(' ', ' p. m.');
 
-  // Temporizador para volver al menú principal (4 segundos)
-  useEffect(() => {
-    if (issuedTicket) {
+        const ticketData = {
+          code: issuedTicket.code,
+          prefix: issuedTicket.prefix,
+          number: issuedTicket.code.replace(issuedTicket.prefix, ''),
+          serviceName: issuedTicket.serviceName,
+          isPriority: issuedTicket.isPriority,
+          date: fechaStr,
+          time: horaStr
+        };
+
+        const virtualPrinter: Printer = {
+          id: 'virtual-browser',
+          name: 'Navegador',
+          type: PrinterType.BROWSER,
+          address: '',
+          active: true
+        };
+
+        PrinterService.printTicket(virtualPrinter, ticketData).catch(err => {
+          console.error("Error en impresión virtual:", err);
+        });
+      }
+
       const closeTimer = setTimeout(() => {
         setIssuedTicket(null);
         setIsPriority(null);
       }, 4000);
-      return () => clearTimeout(closeTimer);
     }
   }, [issuedTicket]);
 

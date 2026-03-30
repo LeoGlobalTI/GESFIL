@@ -9,7 +9,7 @@ export class PrinterService {
     isPriority: boolean;
     date: string;
     time: string;
-  }, targetWindow?: Window | null) {
+  }) {
     try {
       if (printer.type === PrinterType.USB) {
         return await this.printUSB(printer, ticketData);
@@ -18,17 +18,17 @@ export class PrinterService {
           return await this.printNetwork(printer, ticketData);
         } catch (netError: any) {
           console.warn("Fallo impresión de red, intentando fallback a navegador:", netError.message);
-          return this.printBrowser(ticketData, targetWindow);
+          return this.printBrowser(ticketData);
         }
       } else if (printer.type === PrinterType.BRIDGE) {
         try {
           return await this.printBridge(printer, ticketData);
         } catch (bridgeError: any) {
           console.warn("Fallo impresión por Bridge, intentando fallback a navegador:", bridgeError.message);
-          return this.printBrowser(ticketData, targetWindow);
+          return this.printBrowser(ticketData);
         }
       } else if (printer.type === PrinterType.BROWSER) {
-        return this.printBrowser(ticketData, targetWindow);
+        return this.printBrowser(ticketData);
       }
     } catch (error: any) {
       console.error("Error en printTicket:", error);
@@ -43,7 +43,7 @@ export class PrinterService {
 
       if ((printer.type === PrinterType.USB || printer.type === PrinterType.BRIDGE) && isAccessDenied) {
         console.warn("Fallo impresión física, intentando fallback a navegador...");
-        return this.printBrowser(ticketData, targetWindow);
+        return this.printBrowser(ticketData);
       }
       throw error;
     }
@@ -136,8 +136,8 @@ export class PrinterService {
     }
   }
 
-  private static printBrowser(data: any, targetWindow?: Window | null) {
-    const printWindow = targetWindow || window.open('', '_blank', 'width=300,height=450');
+  private static printBrowser(data: any) {
+    const printWindow = window.open('', '_blank', 'width=300,height=450');
     if (!printWindow) {
       alert("La ventana de impresión fue bloqueada por el navegador. Por favor, permita las ventanas emergentes para este sitio.");
       return false;
