@@ -42,7 +42,7 @@ const mapTicketFromDb = (t: any): Ticket => {
     id: t.id,
     code: t.code,
     serviceId: t.service_id,
-    status: t.status as TicketStatus,
+    status: (t.status || '').toUpperCase() as TicketStatus,
     createdAt: isNaN(createdAtDate) ? Date.now() : createdAtDate,
     calledAt: (calledAtDate !== undefined && !isNaN(calledAtDate)) ? calledAtDate : undefined,
     startedAt: (startedAtDate !== undefined && !isNaN(startedAtDate)) ? startedAtDate : undefined,
@@ -60,7 +60,7 @@ const mapUserFromDb = (u: any): User => ({
   username: u.username,
   password: u.password,
   name: u.name,
-  role: u.role as UserRole,
+  role: (u.role || '').toUpperCase() as UserRole,
   assignedStationId: u.assigned_station_id
 });
 
