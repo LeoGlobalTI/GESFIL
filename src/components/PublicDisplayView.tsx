@@ -26,7 +26,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
         if (a.status !== b.status) return a.status === TicketStatus.CALLING ? -1 : 1;
         return (b.calledAt || 0) - (a.calledAt || 0);
       })
-      .slice(0, 5),
+      .slice(0, 4),
   [tickets]);
 
   useEffect(() => {
@@ -45,8 +45,8 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
   [tickets]);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12 font-sans flex flex-col overflow-hidden selection:bg-indigo-500">
-      <header className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-16 animate-fade-in gap-6">
+    <div className="h-screen w-screen bg-[#020617] text-white p-4 md:p-8 font-sans flex flex-col overflow-hidden selection:bg-indigo-500">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-6 md:mb-8 animate-fade-in gap-4 shrink-0">
         <div className="flex items-center gap-4 md:gap-8">
           <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-950">
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:w-8 md:h-8"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
@@ -68,14 +68,14 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
         </div>
       </header>
 
-      <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-12">
-        <div className="lg:col-span-8 space-y-6">
-          <div className="flex items-center gap-4 px-4 mb-4">
+      <main className="flex-grow min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-12">
+        <div className="lg:col-span-8 flex flex-col min-h-0">
+          <div className="flex items-center gap-4 px-4 mb-4 shrink-0">
             <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></div>
             <h2 className="text-sm font-black text-slate-500 uppercase tracking-[0.5em]">Llamados Activos</h2>
           </div>
           
-          <div className="grid grid-cols-1 gap-6">
+          <div className="flex-grow overflow-hidden flex flex-col gap-4">
             {activeCalls.map((ticket, idx) => {
               const station = stations.find(s => s.id === ticket.stationId);
               const service = services.find(s => s.id === ticket.serviceId);
@@ -84,7 +84,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
               return (
                 <div 
                   key={ticket.id}
-                  className={`flex flex-col sm:flex-row items-center justify-between p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-700 animate-fade-in gap-6 ${
+                  className={`flex-1 flex flex-col sm:flex-row items-center justify-between px-6 py-4 md:px-10 md:py-6 rounded-[2.5rem] md:rounded-[3rem] border transition-all duration-700 animate-fade-in gap-4 md:gap-6 ${
                     isCalling 
                     ? "scale-[1.02] shadow-[0_0_80px_-10px_rgba(79,70,229,0.5)]" 
                     : "bg-slate-900/40 border-slate-800/50"
@@ -96,17 +96,17 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                   }}
                 >
                   <div className="flex flex-col items-center sm:items-start">
-                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Paciente</span>
-                    <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">{ticket.code}</span>
+                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-1 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Paciente</span>
+                    <span className="text-5xl md:text-7xl lg:text-[80px] font-black leading-none tracking-tighter">{ticket.code}</span>
                   </div>
                   
-                  <div className="hidden sm:block h-16 md:h-24 w-[1px] bg-white/10"></div>
+                  <div className="hidden sm:block h-12 md:h-20 w-[1px] bg-white/10"></div>
                   <div className="sm:hidden w-full h-[1px] bg-white/10"></div>
                   
                   <div className="text-center sm:text-right">
-                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Módulo</span>
+                    <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-1 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Módulo</span>
                     <div className="flex items-baseline justify-center sm:justify-end gap-3">
-                      <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">
+                      <span className="text-5xl md:text-7xl lg:text-[80px] font-black leading-none tracking-tighter">
                         {station?.name.split(' ').pop() || "00"}
                       </span>
                     </div>
@@ -116,33 +116,33 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
             })}
             
             {activeCalls.length === 0 && (
-              <div className="h-[400px] flex items-center justify-center border-2 border-dashed border-slate-800/60 rounded-[4rem]">
+              <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-800/60 rounded-[4rem]">
                 <p className="text-3xl font-black uppercase tracking-widest text-slate-800 italic">Sincronizando flujo...</p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="lg:col-span-4">
-           <div className="bg-[#0f172a] rounded-[4rem] p-10 flex flex-col border border-slate-800/50 shadow-2xl h-full">
-             <div className="flex items-center justify-between mb-10">
-                <h3 className="text-xl font-bold tracking-tight text-white uppercase tracking-widest">En Espera</h3>
+        <div className="lg:col-span-4 flex flex-col min-h-0">
+           <div className="bg-[#0f172a] rounded-[3rem] p-6 md:p-8 flex flex-col border border-slate-800/50 shadow-2xl h-full overflow-hidden">
+             <div className="flex items-center justify-between mb-6 shrink-0">
+                <h3 className="text-lg md:text-xl font-bold tracking-tight text-white uppercase tracking-widest">En Espera</h3>
                 <span className="bg-indigo-500 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-950">
                   Total: {tickets.filter(t => t.status === TicketStatus.WAITING).length}
                 </span>
              </div>
 
-             <div className="flex-grow space-y-3 mb-12 overflow-hidden">
+             <div className="flex-grow flex flex-col gap-2 overflow-hidden">
                {waitingList.length > 0 ? (
                  waitingList.map((t, idx) => {
                    const service = services.find(s => s.id === t.serviceId);
                    return (
-                     <div key={t.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 animate-fade-in" style={{ animationDelay: `${idx * 0.08}s` }}>
+                     <div key={t.id} className="flex-1 flex items-center justify-between bg-white/5 px-4 py-2 rounded-2xl border border-white/5 animate-fade-in min-h-[40px]" style={{ animationDelay: `${idx * 0.08}s` }}>
                         <div className="flex items-center gap-4">
-                          <div className="w-2 h-10 rounded-full" style={{ backgroundColor: service?.color || '#333' }}></div>
-                          <span className="text-3xl font-bold tracking-tighter">{t.code}</span>
+                          <div className="w-2 h-8 rounded-full" style={{ backgroundColor: service?.color || '#333' }}></div>
+                          <span className="text-2xl md:text-3xl font-bold tracking-tighter">{t.code}</span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{service?.name || '---'}</span>
+                        <span className="text-[9px] md:text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[100px] text-right">{service?.name || '---'}</span>
                      </div>
                    );
                  })
@@ -156,7 +156,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
         </div>
       </main>
 
-      <footer className="mt-12 bg-slate-900/30 py-6 md:py-4 px-6 md:px-10 rounded-3xl md:rounded-full border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="mt-6 shrink-0 bg-slate-900/30 py-4 px-6 md:px-10 rounded-3xl md:rounded-full border border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
            <span className="text-[9px] md:text-[11px] font-black text-indigo-500 uppercase tracking-[0.4em]">GESFIL ENTERPRISE</span>
            <div className="hidden md:block w-1 h-1 bg-slate-700 rounded-full"></div>
