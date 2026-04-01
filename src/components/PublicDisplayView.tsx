@@ -7,12 +7,13 @@ interface PublicDisplayViewProps {
   tickets: Ticket[];
   stations: Station[];
   services: Service[];
-  displaySettings?: { notificationSound: string };
+  displaySettings?: { notificationSound: string; notificationVolume?: number };
 }
 
 const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations, services, displaySettings }) => {
   const [now, setNow] = useState(new Date());
   const [lastCalledTicketId, setLastCalledTicketId] = useState<string | null>(null);
+  const [lastRecalledCount, setLastRecalledCount] = useState<number>(0);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -31,11 +32,19 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
 
   useEffect(() => {
     const currentCalling = activeCalls.find(t => t.status === TicketStatus.CALLING);
-    if (currentCalling && currentCalling.id !== lastCalledTicketId) {
-      setLastCalledTicketId(currentCalling.id);
-      playNotificationSound(displaySettings?.notificationSound || 'timbre');
+    if (currentCalling) {
+      const currentRecalledCount = currentCalling.metadata?.recalledCount || 0;
+      
+      if (currentCalling.id !== lastCalledTicketId || currentRecalledCount > lastRecalledCount) {
+        setLastCalledTicketId(currentCalling.id);
+        setLastRecalledCount(currentRecalledCount);
+        playNotificationSound(
+          displaySettings?.notificationSound || 'timbre',
+          displaySettings?.notificationVolume ?? 1
+        );
+      }
     }
-  }, [activeCalls, lastCalledTicketId, displaySettings?.notificationSound]);
+  }, [activeCalls, lastCalledTicketId, lastRecalledCount, displaySettings?.notificationSound, displaySettings?.notificationVolume]);
 
   const waitingList = useMemo(() => 
     tickets

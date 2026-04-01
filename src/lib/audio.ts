@@ -1,4 +1,4 @@
-export const playNotificationSound = (type: string) => {
+export const playNotificationSound = (type: string, masterVolume: number = 1) => {
   const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
   if (!AudioContext) return;
   const ctx = new AudioContext();
@@ -9,7 +9,10 @@ export const playNotificationSound = (type: string) => {
     osc.type = type;
     osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
     
-    gain.gain.setValueAtTime(vol, ctx.currentTime + time);
+    // Apply master volume to the base volume (multiply by 5 for higher max volume)
+    const finalVol = vol * masterVolume * 5;
+    
+    gain.gain.setValueAtTime(finalVol, ctx.currentTime + time);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + duration);
     
     osc.connect(gain);

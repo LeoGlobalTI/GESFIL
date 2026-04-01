@@ -91,6 +91,7 @@ export interface QmsState {
   };
   displaySettings: {
     notificationSound: string;
+    notificationVolume?: number;
   };
   users: User[];
   currentUser: User | null;
