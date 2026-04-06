@@ -147,7 +147,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
       const closeTimer = setTimeout(() => {
         setIssuedTicket(null);
         setIsPriority(null);
-      }, 4000);
+      }, 6000);
       return () => clearTimeout(closeTimer);
     }
   }, [issuedTicket]);

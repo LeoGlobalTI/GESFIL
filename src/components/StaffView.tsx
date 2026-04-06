@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types';
 import { formatTime } from '@/utils/formatters';
 
@@ -28,6 +27,7 @@ const StaffView: React.FC<StaffViewProps> = ({
   const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPERADMIN;
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Mock connection status
 
   const handleStatusUpdate = async (ticketId: string, status: TicketStatus, stationId: string) => {
     if (isProcessing) return;
@@ -90,8 +90,9 @@ const StaffView: React.FC<StaffViewProps> = ({
       {allStations.length > 0 && (
         <aside className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-5">
           <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-50 mb-3">
+            <div className="px-4 py-3 border-b border-slate-50 mb-3 flex justify-between items-center">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] block">Red de Módulos</span>
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} title={isConnected ? 'Conectado' : 'Desconectado'}></div>
             </div>
             
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
@@ -242,7 +243,9 @@ const StaffView: React.FC<StaffViewProps> = ({
                         disabled={!!activeTicket || isProcessing}
                         className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 disabled:opacity-20 transition-all shadow-xl shadow-indigo-100 flex items-center gap-2"
                       >
-                        Llamar
+                        {isProcessing && activeTicket?.id === t.id ? (
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        ) : 'Llamar'}
                       </button>
                     </div>
                   );
@@ -292,7 +295,9 @@ const StaffView: React.FC<StaffViewProps> = ({
                           disabled={isProcessing}
                           className="flex-[2] py-6 bg-indigo-600 text-white font-black rounded-3xl shadow-2xl shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-50 transition-all text-xl flex items-center justify-center gap-3"
                         >
-                          Iniciar Atención
+                          {isProcessing ? (
+                            <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          ) : 'Iniciar Atención'}
                         </button>
                         <button 
                           onClick={() => handleStatusUpdate(activeTicket.id, TicketStatus.CANCELLED, station.id)}
@@ -320,7 +325,9 @@ const StaffView: React.FC<StaffViewProps> = ({
                           disabled={isProcessing}
                           className="w-full max-w-md py-6 bg-emerald-600 text-white font-black rounded-3xl shadow-2xl shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-50 transition-all text-xl flex items-center justify-center gap-3"
                         >
-                          Completar Trámite
+                          {isProcessing ? (
+                            <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          ) : 'Completar Trámite'}
                         </button>
                       </div>
                     </div>

@@ -159,6 +159,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
     return { total, completed, waiting, cancelled, dataByService, avgWaitTime, avgServiceTime, trendData, statusData, recent };
   }, [filteredTickets, services, selectedServices]);
 
+  const exportToCSV = () => {
+    const headers = ['Código', 'Servicio', 'Estado', 'Fecha Creación'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredTickets.map(t => [
+        t.code,
+        services.find(s => s.id === t.serviceId)?.name || 'N/A',
+        t.status,
+        new Date(t.createdAt).toLocaleString()
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `reporte_turnos_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-10 animate-fade-in">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 pb-10 gap-6">
@@ -166,6 +186,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">GESFIL Business Hub</h1>
           <p className="text-slate-500 font-medium">Infraestructura de Gestión en Tiempo Real</p>
         </div>
+        <button onClick={exportToCSV} className="px-6 py-3 bg-slate-900 text-white font-black rounded-2xl text-sm hover:bg-slate-800 transition-all">
+          Exportar a CSV
+        </button>
       </header>
 
       <div className="flex flex-col md:flex-row gap-6 mb-8">
@@ -196,7 +219,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
               </div>
               <div className="flex-1">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Hasta</label>
-                <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
+                <input type="date" value={customEndDate} min={customStartDate} onChange={e => setCustomEndDate(e.target.value)} className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" />
               </div>
             </div>
           )}
