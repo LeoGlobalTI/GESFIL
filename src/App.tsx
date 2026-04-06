@@ -136,40 +136,15 @@ const AdminPanel: React.FC<{
               Panel de administración de nivel empresarial. Controle el flujo de pacientes, gestione operarios y supervise el rendimiento del sistema en tiempo real.
             </p>
           </div>
-
-          <div className="mt-12 flex gap-12 relative z-10">
-             {[
-               { label: 'Uptime', value: '99.99%', icon: '⚡' },
-               { label: 'Payload', value: `${(JSON.stringify(state).length / 1024).toFixed(1)}KB`, icon: '📦' },
-               { label: 'Latency', value: '14ms', icon: '🛰️' }
-             ].map((stat, i) => (
-               <div key={i} className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">{stat.label}</span>
-                  <span className="text-2xl font-black text-white">{stat.value}</span>
-               </div>
-             ))}
-          </div>
           
           <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-600/5 to-transparent pointer-events-none"></div>
           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]"></div>
         </div>
 
-        <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col justify-between">
-          <div className="space-y-4">
-            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">Métricas del Nodo</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Operadores</p>
-                 <p className="text-3xl font-black text-slate-900">{users.length}</p>
-              </div>
-              <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Módulos</p>
-                 <p className="text-3xl font-black text-slate-900">{stations.length}</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8">
-            <TechnicalInfoView state={state} isSidebar={false} compact />
+        <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col justify-center">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Estado del Sistema</h3>
+            <p className="text-slate-500 text-sm font-medium">Todos los servicios operando normalmente</p>
           </div>
         </div>
       </div>
