@@ -49,12 +49,12 @@ export const useQmsStore = () => {
           { data: printers, error: errPrinters },
           { data: configs, error: errConfigs }
         ] = await Promise.all([
-          supabase.from('services').select('*'),
-          supabase.from('stations').select('*'),
-          supabase.from('tickets').select('*').gte('created_at', today.toISOString()).order('created_at', { ascending: false }),
-          supabase.from('users').select('*'),
-          supabase.from('printers').select('*'),
-          supabase.from('system_config').select('*').in('key', ['nextSequence', 'displaySettings'])
+          supabase.from('services').select('id, name, prefix, color, description, active'),
+          supabase.from('stations').select('id, name, operator_name, service_ids, service_configs, active'),
+          supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(100),
+          supabase.from('users').select('id, username, password, name, role, assigned_station_id'),
+          supabase.from('printers').select('id, name, type, address, port, active'),
+          supabase.from('system_config').select('key, value').in('key', ['nextSequence', 'displaySettings'])
         ]);
 
         if (errServices || errStations || errTickets || errUsers || errPrinters || errConfigs) {
