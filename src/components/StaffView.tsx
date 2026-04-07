@@ -143,11 +143,17 @@ const StaffView: React.FC<StaffViewProps> = ({
              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
              </div>
-             <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Supervisor Mode</p>
-             <p className="text-[10px] font-bold leading-relaxed text-slate-400 italic">Asignación dinámica de recursos habilitada para el nodo actual.</p>
+             <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Carga de Trabajo Global</p>
+             <div className="flex items-end gap-3 mb-2">
+                <span className="text-4xl font-black tracking-tighter text-white">
+                  {tickets.filter(t => t.status === TicketStatus.WAITING).length}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">En Espera</span>
+             </div>
+             <p className="text-[10px] font-bold leading-relaxed text-slate-400 italic">Total de pacientes en espera en toda la sucursal.</p>
              <div className="mt-4 flex items-center gap-2">
                 <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Verificado</span>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Sincronizado</span>
              </div>
           </div>
         </aside>

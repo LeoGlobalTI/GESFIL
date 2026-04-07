@@ -231,7 +231,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
         </div>
 
         <div className="flex-1 bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Filtrar por Servicios</label>
+          <div className="flex justify-between items-center mb-4">
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Filtrar por Servicios</label>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setSelectedServices(services.map(s => s.id))}
+                className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+              >
+                Todos
+              </button>
+              <span className="text-slate-300">|</span>
+              <button 
+                onClick={() => setSelectedServices([])}
+                className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:underline"
+              >
+                Ninguno
+              </button>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3">
             {services.map(s => (
               <label key={s.id} className={`flex items-center gap-2 px-4 py-2 rounded-2xl border cursor-pointer transition-all ${selectedServices.includes(s.id) ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>

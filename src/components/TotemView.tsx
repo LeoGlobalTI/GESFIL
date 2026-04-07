@@ -23,6 +23,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   const [issuedTicket, setIssuedTicket] = useState<IssuedTicketInfo | null>(null);
   const [isPriority, setIsPriority] = useState<boolean | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
+  const [loadingServiceId, setLoadingServiceId] = useState<string | null>(null);
   const [showDock, setShowDock] = useState(false);
   const [clickCount, setClickCount] = useState(0);
 
@@ -64,6 +65,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   const handleIssue = async (service: Service) => {
     if (isPriority === null || isIssuing) return;
 
+    setLoadingServiceId(service.id);
     // 1. Pre-abrir ventana si es necesario (para evitar bloqueadores de popups)
     let printWindow: Window | null = null;
     const activePrinters = printers.filter(p => p.active);
@@ -138,6 +140,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
       console.error('Error issuing ticket:', error);
     } finally {
       setIsIssuing(false);
+      setLoadingServiceId(null);
     }
   };
 
@@ -333,11 +336,20 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
           <button
             key={service.id}
             onClick={() => handleIssue(service)}
-            className="group relative w-full min-h-[180px] rounded-[2.5rem] overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 hover:-translate-y-1 active:scale-[0.97] transition-all duration-500 text-left flex flex-col"
+            disabled={isIssuing}
+            className={`group relative w-full min-h-[180px] rounded-[2.5rem] overflow-hidden bg-white border border-slate-200/60 shadow-sm hover:shadow-xl hover:shadow-indigo-100/30 hover:-translate-y-1 active:scale-[0.97] transition-all duration-500 text-left flex flex-col ${isIssuing ? 'opacity-80 cursor-not-allowed' : ''}`}
             style={{ animationDelay: `${idx * 0.05}s` }}
           >
             {/* Contenido de texto */}
-            <div className="flex-grow p-8 flex flex-col justify-center">
+            <div className="flex-grow p-8 flex flex-col justify-center relative">
+              {loadingServiceId === service.id && (
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-[2.5rem]">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Generando...</span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-[9px] font-black text-indigo-600 uppercase tracking-[0.4em] shrink-0">
                   {service.prefix} UNIT

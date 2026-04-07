@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, UserRole, Station } from '@/types';
 import ConfirmationModal from './ConfirmationModal';
 
@@ -26,6 +26,29 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
     assignedStationId: ''
   });
 
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+
+  useEffect(() => {
+    if (!formData.username || (editingUser && formData.username === editingUser.username)) {
+      setUsernameError(null);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    const timer = setTimeout(() => {
+      const exists = users.some(u => u.username.toLowerCase() === formData.username.toLowerCase() && (!editingUser || u.id !== editingUser.id));
+      if (exists) {
+        setUsernameError('Este ID de usuario ya está en uso');
+      } else {
+        setUsernameError(null);
+      }
+      setIsCheckingUsername(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.username, users, editingUser]);
+
   const handleOpenModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
@@ -40,11 +63,14 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
       setEditingUser(null);
       setFormData({ name: '', username: '', password: '', role: UserRole.STAFF, assignedStationId: '' });
     }
+    setUsernameError(null);
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (usernameError) return;
+
     const dataToSend: any = { ...formData };
     
     if (dataToSend.role !== UserRole.STAFF) {
@@ -170,13 +196,17 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">ID Usuario</label>
+                  <div className="flex justify-between items-center px-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Usuario</label>
+                    {isCheckingUsername && <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>}
+                  </div>
                   <input 
                     type="text" required
                     value={formData.username}
                     onChange={e => setFormData({...formData, username: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                    className={`w-full px-6 py-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 transition-all ${usernameError ? 'border-rose-500 focus:ring-rose-600/20' : 'border-slate-200 focus:ring-indigo-600/20'}`}
                   />
+                  {usernameError && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest px-1">{usernameError}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Clave</label>
@@ -228,7 +258,8 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+                  disabled={!!usernameError || isCheckingUsername}
+                  className={`flex-1 py-5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 ${usernameError || isCheckingUsername ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   Guardar Perfil
                 </button>

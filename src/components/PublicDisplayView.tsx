@@ -112,7 +112,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                 >
                   <div className="flex flex-col items-center sm:items-start">
                     <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Paciente</span>
-                    <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">{ticket.code}</span>
+                    <span className={`text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter ${isCalling ? 'animate-pulse-fast' : ''}`}>{ticket.code}</span>
                   </div>
                   
                   <div className="hidden sm:block h-16 md:h-24 w-[1px] bg-white/10"></div>
@@ -121,7 +121,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                   <div className="text-center sm:text-right">
                     <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Módulo</span>
                     <div className="flex items-baseline justify-center sm:justify-end gap-3">
-                      <span className="text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter">
+                      <span className={`text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter ${isCalling ? 'animate-pulse-fast' : ''}`}>
                         {station?.name.split(' ').pop() || "00"}
                       </span>
                     </div>
@@ -186,6 +186,16 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           ))}
         </div>
       </footer>
+
+      <style>{`
+        @keyframes pulse-fast {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+        .animate-pulse-fast {
+          animation: pulse-fast 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 };
