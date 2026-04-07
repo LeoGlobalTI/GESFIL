@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
+import { initAudio } from '@/lib/audio';
 
 interface LoginViewProps {
   onLogin: (username: string, password?: string) => Promise<boolean>;
@@ -18,6 +19,15 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Initialize audio context on user interaction (login click)
+    // This unlocks the browser's autoplay policy for the session
+    try {
+      initAudio();
+    } catch (err) {
+      console.warn("Could not initialize audio context:", err);
+    }
+
     try {
       const success = await onLogin(username, password);
       if (!success) {

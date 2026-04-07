@@ -1,7 +1,43 @@
+// Singleton AudioContext
+let audioCtx: AudioContext | null = null;
+
+export const initAudio = () => {
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass();
+    }
+  }
+  
+  if (audioCtx) {
+    // Resume context if suspended (browser policy)
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    
+    // Play a silent short tone to unlock audio on iOS/Safari/Chrome
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0; // Silent
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+  }
+};
+
 export const playNotificationSound = (type: string, masterVolume: number = 1, durationMultiplier: number = 1) => {
-  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-  if (!AudioContext) return;
-  const ctx = new AudioContext();
+  if (!audioCtx) {
+    initAudio(); // Try to init if not already done
+  }
+  if (!audioCtx) return;
+
+  // Ensure it's resumed
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  const ctx = audioCtx;
 
   const playTone = (freq: number, type: OscillatorType, time: number, duration: number, vol: number = 0.1) => {
     const osc = ctx.createOscillator();
