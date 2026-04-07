@@ -26,6 +26,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   const [loadingServiceId, setLoadingServiceId] = useState<string | null>(null);
   const [showDock, setShowDock] = useState(false);
   const [clickCount, setClickCount] = useState(0);
+  const [printError, setPrintError] = useState<string | null>(null);
 
   const availableServices = useMemo(() => {
     return services.filter(service => 
@@ -154,6 +155,8 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
           activePrinters.forEach(printer => {
             PrinterService.printTicket(printer, ticketData, printer.type === PrinterType.BROWSER ? printWindow : undefined).catch(err => {
               console.error(`Error imprimiendo en ${printer.name}:`, err);
+              setPrintError(`Error en ${printer.name}: ${err.message}`);
+              setTimeout(() => setPrintError(null), 12000);
             });
           });
         } else {
@@ -167,6 +170,8 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
           };
           PrinterService.printTicket(virtualPrinter, ticketData, printWindow).catch(err => {
             console.error("Error en impresión virtual:", err);
+            setPrintError(`Error de impresión: ${err.message}`);
+            setTimeout(() => setPrintError(null), 12000);
           });
         }
       } else {
@@ -192,9 +197,27 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
     }
   }, [issuedTicket]);
 
+  const renderPrintError = () => printError && (
+    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] w-[90%] max-w-md animate-bounce">
+      <div className="bg-rose-600 text-white p-4 rounded-2xl shadow-2xl border-2 border-rose-400 flex items-start gap-3">
+        <div className="bg-white/20 p-1.5 rounded-lg shrink-0 mt-0.5">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-black uppercase tracking-widest mb-1">Error de Impresión</p>
+          <p className="text-[11px] font-bold leading-tight opacity-90">{printError}</p>
+        </div>
+        <button onClick={() => setPrintError(null)} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+
   if (issuedTicket) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center p-6 md:p-12 bg-slate-50 animate-fade-in print:bg-white print:p-0 print:min-h-0">
+        {renderPrintError()}
         {/* Ticket Virtual (Pantalla) */}
         <div className="w-full max-w-[420px] bg-white rounded-[3.5rem] shadow-[0_60px_100px_-20px_rgba(0,0,0,0.12)] border border-slate-100 overflow-hidden relative print:hidden">
           <div className="h-4 w-full" style={{ backgroundColor: issuedTicket.color }}></div>
@@ -307,6 +330,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   if (isPriority === null) {
     return (
       <div className="max-w-5xl mx-auto px-8 py-12 min-h-[calc(100vh-8rem)] flex flex-col justify-center">
+        {renderPrintError()}
         <header className="text-center mb-8 md:mb-12 animate-fade-in">
           <div 
             className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-indigo-200 animate-float"
@@ -354,6 +378,7 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
+      {renderPrintError()}
       <header className="text-center mb-8 md:mb-12 animate-fade-in">
         <button 
           onClick={() => setIsPriority(null)}

@@ -104,6 +104,10 @@ export class PrinterService {
     const bridgeUrl = printer.address || 'http://localhost:3001/imprimir';
     const commands = this.getEscPosString(data);
 
+    // Timeout de 8 segundos para evitar bloqueos prolongados
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
       const response = await fetch(bridgeUrl, {
         method: 'POST',
@@ -111,17 +115,30 @@ export class PrinterService {
           'Content-Type': 'text/plain; charset=utf-8'
         },
         body: commands,
-        mode: 'cors'
+        mode: 'cors',
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        // Detectar si el error viene de ngrok (túnel caído)
+        if (errorText.includes('ngrok') || response.status === 502 || response.status === 504) {
+          throw new Error(`BRIDGE DESCONECTADO (Error ${response.status}): El túnel de ngrok está abierto pero el PC local no responde. Verifique que el Bridge esté ejecutándose en su PC.`);
+        }
         throw new Error(`El Bridge de impresión respondió con error: ${response.status}`);
       }
       
       return true;
     } catch (e: any) {
+      clearTimeout(timeoutId);
       console.error("Error enviando a Bridge de impresión:", e);
       
+      if (e.name === 'AbortError') {
+        throw new Error("TIEMPO DE ESPERA AGOTADO: El Bridge no respondió en 8 segundos. Verifique la conexión a internet en el PC de la impresora.");
+      }
+
       // Detectar bloqueo de contenido mixto (HTTPS -> HTTP)
       const isHttps = window.location.protocol === 'https:';
       const isLocal = bridgeUrl.includes('localhost') || bridgeUrl.includes('127.0.0.1');
