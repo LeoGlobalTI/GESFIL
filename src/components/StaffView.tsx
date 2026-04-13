@@ -45,7 +45,7 @@ const StaffView: React.FC<StaffViewProps> = ({
       const service = services.find(s => s.id === t.serviceId);
       return station.serviceIds.includes(t.serviceId) && 
              service && 
-             isServiceActive(service, station);
+             service.active;
     });
   }, [tickets, station, services, isServiceActive]);
 
@@ -101,7 +101,7 @@ const StaffView: React.FC<StaffViewProps> = ({
                 const stationWaitingCount = tickets.filter(t => {
                   if (t.status !== TicketStatus.WAITING || !s.serviceIds.includes(t.serviceId)) return false;
                   const service = services.find(srv => srv.id === t.serviceId);
-                  return service && isServiceActive(service, s);
+                  return service && service.active;
                 }).length;
                 const activeOnStation = tickets.find(t => 
                   t.stationId === s.id && (t.status === TicketStatus.CALLING || t.status === TicketStatus.ATTENDING)
