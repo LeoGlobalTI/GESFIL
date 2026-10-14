@@ -76,10 +76,6 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Corporativo</h2>
           <p className="text-slate-500 mt-2 font-medium">{CORPORATE_INFO.systemName}</p>
-          <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{CORPORATE_INFO.domain}</span>
-          </a>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 space-y-6">
