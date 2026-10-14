@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ConfirmationModal from './ConfirmationModal';
 import { initAudio } from '@/lib/audio';
+import { CORPORATE_INFO } from '@/constants';
 
 interface LoginViewProps {
   onLogin: (username: string, password?: string) => Promise<boolean>;
@@ -67,14 +68,17 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
           <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-sm">G</div>
             <div className="text-left">
-              <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none">GES<span className="text-indigo-600">FIL</span></h1>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">By Global TI</p>
+              <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none">
+                {CORPORATE_INFO.name}<span className="text-indigo-600">.</span>
+              </h1>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">By {CORPORATE_INFO.company}</p>
             </div>
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Corporativo</h2>
-          <p className="text-slate-500 mt-2 font-medium">Sistema de Gestión de Fila Inteligente</p>
-          <a href="https://www.gtitech.cl" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-            🌐 www.gtitech.cl
+          <p className="text-slate-500 mt-2 font-medium">{CORPORATE_INFO.systemName}</p>
+          <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{CORPORATE_INFO.domain}</span>
           </a>
         </div>
 
@@ -119,8 +123,8 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
 
           <div className="pt-4 flex flex-col gap-4 text-xs text-slate-400 font-bold border-t border-slate-100">
             <div className="flex items-center justify-between">
-              <span>v4.0.2 Stable</span>
-              <span className="opacity-40">Soporte Técnico: Interno</span>
+              <span className="text-indigo-600 font-black">{CORPORATE_INFO.version}</span>
+              <span className="opacity-60">{CORPORATE_INFO.support}</span>
             </div>
             <button 
               type="button"
@@ -138,8 +142,8 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
         </form>
 
         <footer className="mt-12 text-center space-y-1">
-           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">GESFIL Enterprise Suite &bull; Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Global TI</a></p>
-           <p className="text-[10px] text-slate-400 font-bold lowercase tracking-wide">www.gtitech.cl</p>
+           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{CORPORATE_INFO.systemName} &bull; Powered by <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">{CORPORATE_INFO.companyFullName}</a></p>
+           <p className="text-[10px] text-slate-400 font-bold lowercase tracking-wide">{CORPORATE_INFO.domain}</p>
         </footer>
       </div>
     </div>

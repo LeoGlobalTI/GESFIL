@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Service, Printer, PrinterType } from '@/types';
 import { PrinterService } from '@/services/PrinterService';
 import { useGesfilStore } from '@/state/useGesfilStore';
+import { CORPORATE_INFO } from '@/constants';
 
 /**
  * Propiedades del componente TotemView.
@@ -281,10 +282,14 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
               </div>
             </div>
 
-            <div className="py-8 border-y border-dashed border-slate-200">
+            <div className="py-6 border-y border-dashed border-slate-200">
               <p className="text-[13px] text-slate-400 font-medium leading-relaxed italic px-4">
                 Tome su ticket impreso y espere a ser llamado en los monitores de la sala.
               </p>
+              <div className="mt-3 flex items-center justify-between text-[9px] font-bold text-slate-400 uppercase tracking-widest px-4">
+                <span>{CORPORATE_INFO.company}</span>
+                <span className="text-indigo-600">{CORPORATE_INFO.version}</span>
+              </div>
             </div>
 
             <div className="flex flex-col items-center gap-4 pt-2">
@@ -299,8 +304,9 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
         {/* Ticket Físico (Solo Impresión - Optimizado para 80mm) */}
         <div className="hidden print:block w-[80mm] mx-auto p-4 text-black font-sans bg-white">
           <div className="text-center border-b-2 border-black pb-4 mb-4">
-            <h2 className="text-xl font-black tracking-tighter">GESFIL</h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest">Sistema de Gestión de Fila</p>
+            <h2 className="text-xl font-black tracking-tighter">{CORPORATE_INFO.name}</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest">{CORPORATE_INFO.systemName}</p>
+            <p className="text-[8px] font-semibold tracking-wider text-slate-600">{CORPORATE_INFO.domain}</p>
           </div>
 
           <div className="text-center py-6">
@@ -326,6 +332,8 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
 
           <div className="mt-8 pt-4 border-t border-dashed border-black text-center">
             <p className="text-[9px] font-bold uppercase tracking-widest">Gracias por su visita</p>
+            <p className="text-[8px] font-semibold text-black mt-1">{CORPORATE_INFO.company} &bull; {CORPORATE_INFO.domain}</p>
+            <p className="text-[7px] text-gray-600 uppercase tracking-widest">{CORPORATE_INFO.version}</p>
           </div>
         </div>
 
@@ -361,7 +369,9 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
         <header className="text-center mb-8 md:mb-12 animate-fade-in">
           <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full mb-6 shadow-sm">
             <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">GESFIL &bull; Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Global TI</a></span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">
+              {CORPORATE_INFO.name} &bull; {CORPORATE_INFO.version} &bull; Powered by <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{CORPORATE_INFO.company}</a>
+            </span>
           </div>
           <div 
             className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-indigo-200 animate-float cursor-pointer"
@@ -470,8 +480,8 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
       </div>
 
       <footer className="mt-20 text-center space-y-1">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">GESFIL &bull; Terminal de Autoservicio</p>
-        <p className="text-[10px] font-bold text-slate-400">Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Global TI</a> www.gtitech.cl</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">{CORPORATE_INFO.systemName} &bull; {CORPORATE_INFO.version}</p>
+        <p className="text-[10px] font-bold text-slate-400">Powered by <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">{CORPORATE_INFO.companyFullName}</a> {CORPORATE_INFO.domain}</p>
       </footer>
       {dockStyle}
     </div>

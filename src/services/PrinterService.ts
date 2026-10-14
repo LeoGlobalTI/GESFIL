@@ -1,4 +1,5 @@
 import { Printer, PrinterType } from '@/types';
+import { CORPORATE_INFO } from '@/constants';
 
 /**
  * Servicio encargado de gestionar la impresión de tickets.
@@ -77,8 +78,9 @@ export class PrinterService {
     let ticket = INIT + CENTRAR;
     
     // Encabezado
-    ticket += NEGRITA_ON + TAMANO_NORMAL + "GESFIL\n";
-    ticket += NEGRITA_OFF + "Sistema de Gestión de Fila\n";
+    ticket += NEGRITA_ON + TAMANO_NORMAL + `${CORPORATE_INFO.name}\n`;
+    ticket += NEGRITA_OFF + `${CORPORATE_INFO.systemName}\n`;
+    ticket += `${CORPORATE_INFO.domain}\n`;
     ticket += "________________________________\n\n";
     
     // Cuerpo: Turno
@@ -97,6 +99,7 @@ export class PrinterService {
     // Pie de página
     ticket += `${data.date} - ${data.time}\n`;
     ticket += "Gracias por su visita\n";
+    ticket += `${CORPORATE_INFO.company} • ${CORPORATE_INFO.version}\n`;
     
     // Espacio final y corte de papel
     ticket += "\n\n\n\n" + CORTE;
@@ -193,19 +196,21 @@ export class PrinterService {
           </style>
         </head>
         <body>
-          <div class="title">GESFIL</div>
-          <div>Sistema de Gestión de Fila</div>
-          <hr/>
-          <div>SU TURNO ES</div>
+          <div class="title">${CORPORATE_INFO.name}</div>
+          <div style="font-size:11px; font-weight:bold; color:#4f46e5">${CORPORATE_INFO.systemName}</div>
+          <div style="font-size:10px; color:#64748b">${CORPORATE_INFO.company} &bull; ${CORPORATE_INFO.domain}</div>
+          <hr style="margin: 10px 0; border: none; border-top: 1px dashed #000;"/>
+          <div style="font-size:11px; letter-spacing:2px; font-weight:bold;">SU TURNO ES</div>
           <div class="number">${data.prefix} ${data.number}</div>
-          ${data.isPriority ? '<div style="font-weight:bold">--- PREFERENTE ---</div>' : ''}
-          <div style="margin-top:20px">
-            <strong>ÁREA DE ATENCIÓN</strong><br/>
-            ${data.serviceName}
+          ${data.isPriority ? '<div style="font-weight:bold; border: 1px solid #000; display: inline-block; padding: 2px 8px; margin-bottom: 10px;">--- PREFERENTE ---</div>' : ''}
+          <div style="margin-top:15px">
+            <strong style="font-size:11px; letter-spacing:1px;">ÁREA DE ATENCIÓN</strong><br/>
+            <span style="font-size:16px; font-weight:bold;">${data.serviceName}</span>
           </div>
-          <div class="footer">
+          <div class="footer" style="margin-top:20px; font-size:11px;">
             ${data.date} - ${data.time}<br/>
-            Gracias por su visita
+            Gracias por su visita<br/>
+            <span style="font-size:9px; color:#64748b; margin-top:4px; display:inline-block;">${CORPORATE_INFO.version}</span>
           </div>
           <script>
             window.onload = () => {

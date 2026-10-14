@@ -2,6 +2,21 @@
 import React from 'react';
 import { Service, Station } from '@/types';
 
+export const CORPORATE_INFO = {
+  name: 'GESFIL',
+  systemName: 'GESFIL Enterprise Suite',
+  version: 'v4.2.0 Corporate Edition',
+  versionTag: 'v4.2.0 Enterprise',
+  build: '2026.10-R4',
+  releaseDate: '14 de Octubre de 2026',
+  company: 'Global TI',
+  companyFullName: 'Global TI SpA',
+  brandUrl: 'https://www.gtitech.cl',
+  domain: 'www.gtitech.cl',
+  support: 'Soporte Corporativo Global TI',
+  status: 'ONLINE',
+};
+
 // Fix: Added missing 'active' property to initial services
 export const INITIAL_SERVICES: Service[] = [
   { id: '00000000-0000-0000-0000-000000000001', name: 'Triaje', prefix: 'TR', color: '#3b82f6', description: 'Evaluación inicial de pacientes', active: true },

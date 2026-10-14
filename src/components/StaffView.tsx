@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Ticket, Station, Service, TicketStatus, UserRole } from '@/types';
 import { formatTime } from '@/utils/formatters';
+import { CORPORATE_INFO } from '@/constants';
 
 interface StaffViewProps {
   station: Station | null;
@@ -151,9 +152,12 @@ const StaffView: React.FC<StaffViewProps> = ({
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">En Espera</span>
              </div>
              <p className="text-[10px] font-bold leading-relaxed text-slate-400 italic">Total de pacientes en espera en toda la sucursal.</p>
-             <div className="mt-4 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-                <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Sincronizado</span>
+             <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{CORPORATE_INFO.company}</span>
+                </div>
+                <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-wider">{CORPORATE_INFO.version}</span>
              </div>
           </div>
         </aside>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Ticket, Station, TicketStatus, Service } from '@/types';
-
 import { playNotificationSound } from '@/lib/audio';
+import { CORPORATE_INFO } from '@/constants';
 
 /**
  * Propiedades del componente PublicDisplayView.
@@ -22,6 +22,30 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
   const [lastCalledTicketId, setLastCalledTicketId] = useState<string | null>(null);
   const [lastRecalledCount, setLastRecalledCount] = useState<number>(0);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [showDock, setShowDock] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+
+  // Efecto para activar modo administrador oculto al pulsar 5 veces
+  useEffect(() => {
+    if (clickCount >= 5) {
+      setShowDock(true);
+      const timer = setTimeout(() => {
+        setShowDock(false);
+        setClickCount(0);
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, [clickCount]);
+
+  const dockStyle = (
+    <style>{`
+      .dock-nav {
+        opacity: ${showDock ? '1' : '0'};
+        pointer-events: ${showDock ? 'auto' : 'none'};
+        transition: opacity 0.3s ease;
+      }
+    `}</style>
+  );
 
   // Efecto para actualizar el reloj cada segundo
   useEffect(() => {
@@ -127,18 +151,22 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           </button>
         </div>
       )}
-      {/* Encabezado: Logo, nombre y reloj */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-16 animate-fade-in gap-6">
         <div className="flex items-center gap-4 md:gap-8">
-          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-950">
+          <div 
+            onClick={() => setClickCount(prev => prev + 1)}
+            title="Pantalla Pública (5 clics para mostrar controles)"
+            className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-950 cursor-pointer select-none active:scale-95 transition-transform"
+          >
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:w-8 md:h-8"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
           </div>
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-none text-white">GESFIL<span className="text-indigo-500">.</span></h1>
-              <span className="px-2.5 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[9px] font-black uppercase tracking-widest rounded-full">Global TI &bull; www.gtitech.cl</span>
+              <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-none text-white">{CORPORATE_INFO.name}<span className="text-indigo-500">.</span></h1>
+              <span className="px-2.5 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[9px] font-black uppercase tracking-widest rounded-full">{CORPORATE_INFO.company} &bull; {CORPORATE_INFO.domain}</span>
+              <span className="hidden sm:inline-block px-2.5 py-0.5 bg-white/5 border border-white/10 text-slate-300 text-[9px] font-black uppercase tracking-widest rounded-full">{CORPORATE_INFO.version}</span>
             </div>
-            <p className="text-slate-400 font-bold uppercase tracking-[0.4em] text-[8px] md:text-[10px]">Display Center Premium</p>
+            <p className="text-slate-400 font-bold uppercase tracking-[0.4em] text-[8px] md:text-[10px]">{CORPORATE_INFO.systemName} &bull; Display Center</p>
           </div>
         </div>
         
@@ -247,9 +275,9 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
       {/* Pie de página */}
       <footer className="mt-12 bg-slate-900/30 py-6 md:py-4 px-6 md:px-10 rounded-3xl md:rounded-full border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
-           <span className="text-[9px] md:text-[11px] font-black text-indigo-500 uppercase tracking-[0.4em]">GESFIL ENTERPRISE</span>
+           <span className="text-[9px] md:text-[11px] font-black text-indigo-500 uppercase tracking-[0.4em]">{CORPORATE_INFO.systemName}</span>
            <div className="hidden md:block w-1 h-1 bg-slate-700 rounded-full"></div>
-           <span className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Global TI</a> &bull; www.gtitech.cl</span>
+           <span className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">Powered by <a href={CORPORATE_INFO.brandUrl} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">{CORPORATE_INFO.company}</a> &bull; {CORPORATE_INFO.domain}</span>
         </div>
         <div className="flex flex-wrap justify-center gap-4">
           {services.slice(0, 4).map(s => (
@@ -270,6 +298,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           animation: pulse-fast 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
       `}</style>
+      {dockStyle}
     </div>
   );
 };

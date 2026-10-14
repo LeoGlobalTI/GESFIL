@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { useGesfilStore } from '@/state/useGesfilStore';
-import { ICONS } from '@/constants';
+import { ICONS, CORPORATE_INFO } from '@/constants';
 import { UserRole, User, Service, Station, GesfilState, Ticket, TicketStatus, Printer } from '@/types';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import TotemView from '@/components/TotemView';
@@ -15,6 +15,8 @@ import UserManagementView from '@/components/UserManagementView';
 import ServiceManagementView from '@/components/ServiceManagementView';
 import StationManagementView from '@/components/StationManagementView';
 import PrinterManagementView from '@/components/PrinterManagementView';
+import CorporateHeader from '@/components/CorporateHeader';
+import VersionControlView from '@/components/VersionControlView';
 
 const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> = ({ role, logout, currentUser }) => {
   const location = useLocation();
@@ -28,7 +30,7 @@ const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> =
            {currentUser.name[0]}
          </div>
          <div className="hidden md:block">
-            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] leading-none mb-1">Session</p>
+            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] leading-none mb-1">{CORPORATE_INFO.name}</p>
             <p className="text-[13px] font-bold tracking-tight">{currentUser.username}</p>
          </div>
       </div>
@@ -93,7 +95,7 @@ const AdminPanel: React.FC<{
   onDeletePrinter: (id: string) => void,
   updateDisplaySettings: (settings: { notificationSound: string; notificationVolume?: number; notificationDuration?: number }) => void
 }> = ({ state, reset, seed, userRole, users, onAddUser, onUpdateUser, onDeleteUser, services, onAddService, onUpdateService, onDeleteService, stations, onAddStation, onUpdateStation, onDeleteStation, printers, onAddPrinter, onUpdatePrinter, onDeletePrinter, updateDisplaySettings }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'services' | 'stations' | 'analytics' | 'printers' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'services' | 'stations' | 'analytics' | 'printers' | 'settings' | 'versions'>('users');
   const [showResetModal, setShowResetModal] = useState(false);
   const [showSeedModal, setShowSeedModal] = useState(false);
 
@@ -116,39 +118,6 @@ const AdminPanel: React.FC<{
         title="Inicializar Base de Datos"
         message="¿Está seguro de que desea inicializar la base de datos? Esta acción eliminará TODOS los datos actuales (tickets, módulos, servicios, usuarios excepto superadmin) y cargará los datos por defecto. Esta acción es irreversible."
       />
-      {/* Superadmin Executive Master Header */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        <div className="lg:col-span-7 bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-2xl relative overflow-hidden flex flex-col justify-between border border-white/5">
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-6">
-               <div className="w-14 h-14 bg-indigo-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/30 ring-4 ring-indigo-500/20">
-                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
-               </div>
-               <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] leading-none">Global TI &bull; www.gtitech.cl</p>
-                  </div>
-                  <h1 className="text-3xl lg:text-4xl font-black tracking-tight">GESFIL Infrastructure Hub</h1>
-               </div>
-            </div>
-            <p className="text-slate-400 text-sm font-medium max-w-xl leading-relaxed">
-              Panel de administración de nivel empresarial de <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-400 underline">Global TI</a>. Controle el flujo de pacientes, gestione operarios y supervise el rendimiento del sistema en tiempo real.
-            </p>
-          </div>
-          
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-600/5 to-transparent pointer-events-none"></div>
-          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]"></div>
-        </div>
-
-        <div className="lg:col-span-5 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col justify-center">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">Estado del Sistema</h3>
-            <p className="text-slate-500 text-sm font-medium">Todos los servicios operando normalmente</p>
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Navigation Rail */}
         <aside className="xl:col-span-2 space-y-6">
@@ -162,6 +131,19 @@ const AdminPanel: React.FC<{
                 { id: 'printers', label: 'Impresoras', icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>, count: printers.length },
                 { id: 'settings', label: 'Configuración', icon: <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>, count: '' },
                 { id: 'analytics', label: 'BI Hub', icon: <ICONS.Activity />, count: state.tickets.length },
+                { 
+                  id: 'versions', 
+                  label: 'Versiones', 
+                  icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="6" y1="3" x2="6" y2="15"></line>
+                      <circle cx="18" cy="6" r="3"></circle>
+                      <circle cx="6" cy="18" r="3"></circle>
+                      <path d="M18 9a9 9 0 0 1-9 9"></path>
+                    </svg>
+                  ), 
+                  count: '' 
+                },
               ].filter(tab => (tab.id !== 'printers' && tab.id !== 'settings') || userRole === UserRole.SUPERADMIN).map(tab => (
                 <button
                   key={tab.id}
@@ -178,11 +160,13 @@ const AdminPanel: React.FC<{
                     </span>
                     <span className="text-xs font-black tracking-tight">{tab.label}</span>
                   </div>
-                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-full transition-colors ${
-                    activeTab === tab.id ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
-                  }`}>
-                    {tab.count}
-                  </span>
+                  {tab.count !== '' && tab.count !== undefined && (
+                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-full transition-colors ${
+                      activeTab === tab.id ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -304,6 +288,12 @@ const AdminPanel: React.FC<{
                  />
               </div>
             )}
+            {activeTab === 'versions' && (
+              <VersionControlView 
+                state={state} 
+                currentUserRole={userRole} 
+              />
+            )}
           </div>
         </main>
       </div>
@@ -366,6 +356,28 @@ const StaffController: React.FC<{
   );
 };
 
+const AppShell: React.FC<{
+  currentUser: User;
+  role: UserRole;
+  logout: () => void;
+  children: React.ReactNode;
+}> = ({ currentUser, role, logout, children }) => {
+  const location = useLocation();
+  const isTotem = location.pathname.startsWith('/totem');
+  const isDisplay = location.pathname.startsWith('/display');
+  const isKioskOrDisplay = isTotem || isDisplay;
+
+  return (
+    <div className={`min-h-screen ${isDisplay ? 'bg-[#020617] pb-0' : isTotem ? 'bg-slate-50 pb-0' : 'bg-[#f8fafc] pb-32'}`}>
+      {!isKioskOrDisplay && (
+        <CorporateHeader currentUser={currentUser} onLogout={logout} />
+      )}
+      {children}
+      <Nav role={role} logout={logout} currentUser={currentUser} />
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const { 
     state, addTicket, updateTicketStatus, resetSystem, login, logout, 
@@ -385,7 +397,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen pb-32 bg-[#f8fafc]">
+      <AppShell currentUser={state.currentUser} role={role} logout={logout}>
         <Routes>
           <Route path="/" element={
             role === UserRole.TOTEM ? <Navigate to="/totem" /> :
@@ -454,8 +466,7 @@ const App: React.FC = () => {
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-        <Nav role={role} logout={logout} currentUser={state.currentUser} />
-      </div>
+      </AppShell>
     </Router>
   );
 };
