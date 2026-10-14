@@ -87,7 +87,7 @@ const StaffView: React.FC<StaffViewProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-180px)] w-full max-w-[1600px] mx-auto gap-4 lg:gap-8 p-2 animate-fade-in">
-      {/* Sidebar */}
+      {/* Barra lateral de módulos */}
       {allStations.length > 0 && (
         <aside className="w-full lg:w-64 flex-shrink-0 flex flex-col gap-5">
           <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
@@ -99,7 +99,6 @@ const StaffView: React.FC<StaffViewProps> = ({
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
               {allStations.map(s => {
                 const isActive = station && s.id === station.id;
-                const isSelectable = isAdmin && !!onSelectStation;
                 const stationWaitingCount = tickets.filter(t => {
                   if (t.status !== TicketStatus.WAITING || !s.serviceIds.includes(t.serviceId)) return false;
                   const service = services.find(srv => srv.id === t.serviceId);
@@ -112,17 +111,11 @@ const StaffView: React.FC<StaffViewProps> = ({
                 return (
                   <button
                     key={s.id}
-                    onClick={() => {
-                      if (isSelectable) onSelectStation?.(s.id);
-                    }}
-                    disabled={!isSelectable && !isActive}
-                    title={!isSelectable && !isActive ? 'Módulo bloqueado: Asignado a otro operador' : s.name}
+                    onClick={() => onSelectStation?.(s.id)}
                     className={`flex-shrink-0 lg:w-full flex items-center justify-between px-4 py-3.5 rounded-[1.5rem] transition-all duration-300 group ${
                       isActive 
                         ? "bg-slate-900 text-white shadow-lg -translate-y-0.5" 
-                        : isSelectable
-                          ? "text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
-                          : "text-slate-400 opacity-60 cursor-not-allowed bg-slate-50/50"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                     }`}
                   >
                     <div className="flex flex-col items-start min-w-0">
@@ -131,9 +124,6 @@ const StaffView: React.FC<StaffViewProps> = ({
                          <p className={`text-[8px] font-black uppercase tracking-widest whitespace-nowrap ${isActive ? 'text-indigo-400' : 'text-slate-400'}`}>
                            {s.name}
                          </p>
-                         {!isSelectable && !isActive && (
-                           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-400 opacity-70 ml-1"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                         )}
                       </div>
                       <p className="text-[11px] font-black tracking-tight truncate w-full">{s.operatorName}</p>
                     </div>
@@ -173,7 +163,7 @@ const StaffView: React.FC<StaffViewProps> = ({
         </aside>
       )}
 
-      {/* Main Content */}
+      {/* Área principal de atención */}
       <div className="flex-grow flex flex-col gap-6">
         {!station ? (
           <div className="flex-grow flex flex-col items-center justify-center bg-white rounded-[2.5rem] border border-slate-100 p-10 text-center space-y-6 shadow-sm">

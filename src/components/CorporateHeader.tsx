@@ -49,7 +49,7 @@ export const CorporateHeader: React.FC<CorporateHeaderProps> = ({ currentUser, o
       }`}
     >
       <div className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-8 h-14 md:h-16 flex items-center justify-between gap-3">
-        {/* Left: Brand & Company */}
+        {/* Izquierda: Logotipo y Empresa */}
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-tr from-indigo-600 to-indigo-500 rounded-xl flex items-center justify-center text-white font-black shadow-md shadow-indigo-500/20 text-sm">
@@ -70,7 +70,7 @@ export const CorporateHeader: React.FC<CorporateHeaderProps> = ({ currentUser, o
 
           <div className={`hidden lg:block h-6 w-px ${isDisplayView ? 'bg-slate-800' : 'bg-slate-200'}`} />
 
-          {/* Company official link */}
+          {/* Enlace oficial a la empresa */}
           <a
             href={CORPORATE_INFO.brandUrl}
             target="_blank"
@@ -95,7 +95,7 @@ export const CorporateHeader: React.FC<CorporateHeaderProps> = ({ currentUser, o
           </a>
         </div>
 
-        {/* Center: Module Context */}
+        {/* Centro: Contexto del módulo actual */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border ${
           isDisplayView
             ? 'bg-slate-900/60 border-slate-800 text-slate-300'
@@ -107,9 +107,9 @@ export const CorporateHeader: React.FC<CorporateHeaderProps> = ({ currentUser, o
           <span className="text-[11px] font-medium text-slate-500">{currentView.subtitle}</span>
         </div>
 
-        {/* Right: Operational Status, Corporate Version badge & User */}
+        {/* Derecha: Estado operativo, versión y usuario */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Status badge */}
+          {/* Indicador de estado en línea */}
           <div
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase border ${
               isDisplayView
@@ -121,7 +121,7 @@ export const CorporateHeader: React.FC<CorporateHeaderProps> = ({ currentUser, o
             <span>{CORPORATE_INFO.status}</span>
           </div>
 
-          {/* Version badge */}
+          {/* Indicador de versión */}
           <span
             className={`hidden xl:inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg border ${
               isDisplayView

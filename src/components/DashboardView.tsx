@@ -22,11 +22,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
   const [historicalTickets, setHistoricalTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Initialize selected services once, or when new services are added
+  // Inicializar servicios seleccionados una sola vez o cuando se agreguen nuevos servicios
   useEffect(() => {
     setSelectedServices(prev => {
       const newServiceIds = services.map(s => s.id);
-      // Only update if the number of services has changed to avoid resetting user filters
+      // Actualizar solo si la cantidad cambió para conservar los filtros elegidos por el usuario
       if (prev.length === 0 || prev.length !== newServiceIds.length) {
         return newServiceIds;
       }
@@ -111,7 +111,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
       let sServiceCount = 0;
 
       sTickets.forEach(t => {
-        if (t.status === TicketStatus.CANCELLED) return; // Exclude cancelled/abandoned tickets
+        if (t.status === TicketStatus.CANCELLED) return; // Excluir turnos cancelados o abandonados
         if (t.calledAt) {
           sWaitTime += (t.calledAt - t.createdAt);
           sWaitCount++;

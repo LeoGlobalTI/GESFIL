@@ -28,7 +28,7 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
   const handleOpenModal = (station?: Station) => {
     if (station) {
       setEditingStation(station);
-      // Ensure all serviceIds have a config entry
+      // Asegurar que cada servicio tenga su configuración creada
       const configs = { ...(station.serviceConfigs || {}) };
       station.serviceIds.forEach(sid => {
         if (!configs[sid]) {

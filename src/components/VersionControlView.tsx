@@ -18,10 +18,24 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'v4.2.0 Enterprise',
+    version: 'v4.3.0 Enterprise',
     tag: 'Producción',
     date: '14 de Octubre de 2026',
     isLatest: true,
+    summary: 'Sincronización instantánea de 0 ms entre pantallas, actualización optimista en atención de turnos y estandarización integral del código.',
+    highlights: [
+      'Sincronización instantánea (0 ms) entre Tótem, Operadores y Display público mediante bus BroadcastChannel y almacenamiento local.',
+      'Actualización optimista inmediata en memoria para llamados, inicio de atención y cierre de tickets sin latencia.',
+      'Mecanismo de autoreparación y reconexión automática en tiempo real ante suspensión de pestañas del navegador.',
+      'Resolución definitiva de bloqueos en el proceso de cierre y atención continua de turnos.',
+      'Estandarización y traducción de todos los comentarios del código fuente a español didáctico y claro.',
+    ],
+  },
+  {
+    version: 'v4.2.0 Enterprise',
+    tag: 'Estable',
+    date: '14 de Octubre de 2026',
+    isLatest: false,
     summary: 'Versión simplificada y optimizada de la suite GESFIL con arquitectura unificada y control de versiones centralizado.',
     highlights: [
       'Simplificación de la interfaz de Control de Versiones en el Workspace administrativo.',

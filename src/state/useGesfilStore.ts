@@ -4,6 +4,7 @@ import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants';
 import { supabase } from '@/services/supabase';
 import { mapServiceFromDb, mapStationFromDb, mapTicketFromDb, mapUserFromDb, mapPrinterFromDb } from '@/utils/mappers';
 
+// Usuarios iniciales del sistema
 const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000021', username: 'superadmin', password: '123', name: 'Super Administrador', role: UserRole.SUPERADMIN },
   { id: '00000000-0000-0000-0000-000000000022', username: 'admin', password: '123', name: 'Gestor Operativo', role: UserRole.ADMIN },
@@ -12,22 +13,22 @@ const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000025', username: 'live', password: '123', name: 'Display Live', role: UserRole.DISPLAY },
 ];
 
-const SYNC_CHANNEL_NAME = 'gesfil_multi_screen_sync';
-const SYNC_STORAGE_KEY = 'gesfil_sync_event_v1';
+const CANAL_SINCRONIZACION = 'gesfil_multi_screen_sync';
+const CLAVE_ALMACENAMIENTO_SYNC = 'gesfil_sync_event_v1';
 
-// Cross-Screen Instant Broadcast Helper (0 ms latency between open tabs and displays)
+// Función para avisar al instante a todas las pantallas abiertas (comunicación directa en 0 milisegundos)
 export const broadcastScreenEvent = (payload: any) => {
   try {
     if (typeof window !== 'undefined') {
       if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
+        const bc = new BroadcastChannel(CANAL_SINCRONIZACION);
         bc.postMessage({ ...payload, timestamp: Date.now() });
         bc.close();
       }
-      localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify({ ...payload, timestamp: Date.now() }));
+      localStorage.setItem(CLAVE_ALMACENAMIENTO_SYNC, JSON.stringify({ ...payload, timestamp: Date.now() }));
     }
   } catch (err) {
-    console.warn('Broadcast sync notice:', err);
+    console.warn('Aviso de sincronización:', err);
   }
 };
 
@@ -46,7 +47,7 @@ export const useGesfilStore = () => {
   const [loading, setLoading] = useState(true);
   const isSubscribedRef = useRef(false);
 
-  // Helper to fetch today's tickets
+  // Obtener únicamente los turnos del día para consultas rápidas
   const fetchTicketsOnly = useCallback(async () => {
     try {
       const today = new Date();
@@ -62,6 +63,7 @@ export const useGesfilStore = () => {
       if (!error && tickets) {
         const mapped = tickets.map(mapTicketFromDb);
         setState(prev => {
+          // Comprobar si hubo cambios reales para evitar redibujados innecesarios
           const currentSignature = prev.tickets.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
           const newSignature = mapped.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
           if (currentSignature === newSignature) {
@@ -71,11 +73,11 @@ export const useGesfilStore = () => {
         });
       }
     } catch (err) {
-      console.warn('Error fetching tickets:', err);
+      console.warn('Error al consultar turnos recientes:', err);
     }
   }, []);
 
-  // Comprehensive initial data fetch
+  // Carga inicial completa de datos del sistema
   const fetchAll = useCallback(async () => {
     try {
       const today = new Date();
@@ -98,7 +100,7 @@ export const useGesfilStore = () => {
       ]);
 
       if (errServices || errStations || errTickets || errUsers || errPrinters || errConfigs) {
-        console.error("Error fetching initial data:", { errServices, errStations, errTickets, errUsers, errPrinters, errConfigs });
+        console.error("Error al cargar datos iniciales:", { errServices, errStations, errTickets, errUsers, errPrinters, errConfigs });
       }
 
       const nextSeqConfig = configs?.find(c => c.key === 'nextSequence');
@@ -119,14 +121,14 @@ export const useGesfilStore = () => {
     }
   }, []);
 
-  // Multi-Screen Synchronization (BroadcastChannel + LocalStorage Event + Realtime + Fallback Polling)
+  // Sincronización entre pantallas: BroadcastChannel, almacenamiento local, tiempo real y respaldo periódico
   useEffect(() => {
     fetchAll();
 
-    // 1. Cross-Screen BroadcastChannel listener (Instant 0 ms peer communication)
+    // 1. Escucha en canal BroadcastChannel (comunicación instantánea entre pestañas en 0 milisegundos)
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
-      bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
+      bc = new BroadcastChannel(CANAL_SINCRONIZACION);
       bc.onmessage = (event) => {
         const data = event.data;
         if (!data || !data.type) return;
@@ -156,9 +158,9 @@ export const useGesfilStore = () => {
       };
     }
 
-    // 2. Storage event listener (Fallback for cross-tab communication)
+    // 2. Escucha de eventos de almacenamiento (respaldo para sincronizar pestañas en cualquier navegador)
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === SYNC_STORAGE_KEY && e.newValue) {
+      if (e.key === CLAVE_ALMACENAMIENTO_SYNC && e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
           if (data.type === 'TICKET_UPDATE' && data.ticket) {
@@ -186,7 +188,7 @@ export const useGesfilStore = () => {
     };
     window.addEventListener('storage', handleStorage);
 
-    // 3. Supabase Realtime channel setup with auto-recovery
+    // 3. Conexión en tiempo real con Supabase y reconexión automática en caso de corte
     let realtimeChannel: any = null;
 
     const setupRealtime = () => {
@@ -294,7 +296,7 @@ export const useGesfilStore = () => {
             isSubscribedRef.current = true;
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             isSubscribedRef.current = false;
-            // Reconnect after 3 seconds
+            // Reintentar conexión después de 3 segundos
             setTimeout(setupRealtime, 3000);
           }
         });
@@ -302,12 +304,12 @@ export const useGesfilStore = () => {
 
     setupRealtime();
 
-    // 4. Background Fast Poll (Every 2.5 seconds): guarantees instant sync across all devices
+    // 4. Consulta periódica rápida (cada 2.5 segundos): garantiza sincronización entre dispositivos físicos distintos
     const fastPoll = setInterval(() => {
       fetchTicketsOnly();
     }, 2500);
 
-    // 5. Visibility and connectivity recovery (when user switches tabs or screen wakes up)
+    // 5. Recuperación automática al reactivarse la pestaña o reconectarse a internet
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchTicketsOnly();
@@ -336,7 +338,7 @@ export const useGesfilStore = () => {
     };
   }, [fetchAll, fetchTicketsOnly]);
 
-  // Session persistence
+  // Persistencia de la sesión del usuario en el navegador
   useEffect(() => {
     const savedUser = localStorage.getItem('gesfil_user');
     if (savedUser) {
@@ -355,7 +357,7 @@ export const useGesfilStore = () => {
     }
   }, [state.currentUser]);
 
-  // Actions
+  // Iniciar sesión
   const login = useCallback(async (username: string, password?: string) => {
     const { data, error } = await supabase
       .from('users')
@@ -372,8 +374,10 @@ export const useGesfilStore = () => {
     return false;
   }, []);
 
+  // Cerrar sesión
   const logout = useCallback(() => setState(prev => ({ ...prev, currentUser: null })), []);
 
+  // Crear un nuevo turno (Tótem)
   const addTicket = useCallback(async (serviceId: string, priority: boolean = false) => {
     const service = state.services.find(s => s.id === serviceId);
     if (!service) return null;
@@ -390,6 +394,7 @@ export const useGesfilStore = () => {
     if (!config.sequences) config.sequences = {};
 
     try {
+      // Calcular número correlativo evitando saltos o colisiones
       const { data: todayTickets, error } = await supabase
         .from('tickets')
         .select('code')
@@ -410,7 +415,7 @@ export const useGesfilStore = () => {
       const localSeq = config.sequences[serviceId] || 0;
       currentSeq = Math.max(maxNum + 1, localSeq + 1);
     } catch (err) {
-      console.error('Error during sequence calculation:', err);
+      console.error('Error calculando correlativo:', err);
       currentSeq = (config.sequences[serviceId] || 0) + 1;
     }
 
@@ -423,7 +428,7 @@ export const useGesfilStore = () => {
     }));
 
     supabase.from('system_config').upsert({ key: 'nextSequence', value: config }).then(({error}) => {
-      if (error) console.error("Failed to persist nextSequence", error);
+      if (error) console.error("Error al guardar nextSequence:", error);
     });
 
     const finalSeq = currentSeq;
@@ -437,19 +442,19 @@ export const useGesfilStore = () => {
     }).select().single();
 
     if (error) {
-      console.error('Error adding ticket:', error);
+      console.error('Error creando turno:', error);
       return null;
     }
 
     const newTicket = mapTicketFromDb(data);
 
-    // Update local state immediately
+    // Actualizar el estado local de inmediato
     setState(prev => ({
       ...prev,
       tickets: [newTicket, ...prev.tickets.filter(t => t.id !== newTicket.id)]
     }));
 
-    // Broadcast instantaneously to all screens (Display, Operator, Totem)
+    // Transmitir inmediatamente a todas las pantallas (Display, Operadores y Tótem)
     broadcastScreenEvent({
       type: 'TICKET_INSERT',
       ticket: newTicket
@@ -458,22 +463,20 @@ export const useGesfilStore = () => {
     return newTicket;
   }, [state.services, state.nextSequence]);
 
+  // Actualizar estado de un turno (Llamar, Atender, Completar, Cancelar)
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
     const ticket = state.tickets.find(t => t.id === ticketId);
     const station = state.stations.find(s => s.id === stationId);
     
     if (!ticket || !station) return;
 
-    // Security: Validate module handles this service
+    // Seguridad: Validar que el módulo atiende este servicio
     if (!station.serviceIds.includes(ticket.serviceId)) {
       alert('Este módulo no está autorizado para atender este servicio.');
       return;
     }
 
-    // State Machine Transitions
-    const currentStatus = ticket.status;
-    
-    // Validation: Can't call if already has an active ticket (unless it's a recall for the SAME ticket)
+    // Validación: No permitir llamar a otro turno si ya hay uno activo en este módulo
     if (newStatus === TicketStatus.CALLING && ticket.id !== ticketId) {
       const hasActive = state.tickets.some(t => 
         t.stationId === stationId && 
@@ -486,7 +489,7 @@ export const useGesfilStore = () => {
       }
     }
 
-    // Transition Logic & timestamps
+    // Marcas de tiempo y datos a actualizar
     const nowIso = new Date().toISOString();
     const nowEpoch = Date.now();
     const updates: any = { status: newStatus };
@@ -504,7 +507,7 @@ export const useGesfilStore = () => {
       updates.ended_at = nowIso;
     }
 
-    // 1. INSTANT OPTIMISTIC LOCAL STATE UPDATE (0 ms latency for operator)
+    // 1. Actualización optimista instantánea (0 ms para que el operador no espere nada)
     const optimisticTicket: Ticket = {
       ...ticket,
       status: newStatus,
@@ -526,13 +529,13 @@ export const useGesfilStore = () => {
       return { ...prev, tickets };
     });
 
-    // 2. INSTANT MULTI-SCREEN BROADCAST (Display immediately sounds chime and updates)
+    // 2. Transmisión instantánea a pantallas (el display suena y actualiza de inmediato)
     broadcastScreenEvent({
       type: 'TICKET_UPDATE',
       ticket: optimisticTicket
     });
 
-    // 3. PERSISTENCE IN SUPABASE
+    // 3. Guardado en la base de datos Supabase
     try {
       const { data, error } = await supabase.from('tickets')
         .update(updates)
@@ -541,7 +544,7 @@ export const useGesfilStore = () => {
         .single();
         
       if (error) {
-        console.error('Error updating ticket status:', error);
+        console.error('Error actualizando turno en base de datos:', error);
       } else if (data) {
         const reconciled = mapTicketFromDb(data);
         setState(prev => {
@@ -558,10 +561,11 @@ export const useGesfilStore = () => {
         });
       }
     } catch (err) {
-      console.error('Exception updating ticket in database:', err);
+      console.error('Excepción al guardar turno en base de datos:', err);
     }
   }, [state.tickets, state.stations]);
 
+  // Agregar nuevo usuario
   const addUser = useCallback(async (u: Omit<User, 'id'>) => {
     const { error } = await supabase.from('users').insert({
       username: u.username,
@@ -570,9 +574,10 @@ export const useGesfilStore = () => {
       role: u.role,
       assigned_station_id: u.assignedStationId || null
     });
-    if (error) console.error("Error adding user:", error);
+    if (error) console.error("Error al agregar usuario:", error);
   }, []);
 
+  // Actualizar usuario
   const updateUser = useCallback(async (id: string, u: Partial<User>) => {
     const updates: any = { ...u };
     if (u.assignedStationId !== undefined) {
@@ -587,14 +592,16 @@ export const useGesfilStore = () => {
     delete updates.id;
 
     const { error } = await supabase.from('users').update(updates).eq('id', id);
-    if (error) console.error("Error updating user:", error);
+    if (error) console.error("Error al actualizar usuario:", error);
   }, []);
 
+  // Eliminar usuario
   const deleteUser = useCallback(async (id: string) => {
     const { error } = await supabase.from('users').delete().eq('id', id);
-    if (error) console.error("Error deleting user:", error);
+    if (error) console.error("Error al eliminar usuario:", error);
   }, []);
 
+  // Agregar servicio
   const addService = useCallback(async (s: Omit<Service, 'id'>) => {
     const { error } = await supabase.from('services').insert({
       name: s.name,
@@ -603,17 +610,19 @@ export const useGesfilStore = () => {
       description: s.description,
       active: s.active
     });
-    if (error) console.error("Error adding service:", error);
+    if (error) console.error("Error al agregar servicio:", error);
   }, []);
 
+  // Actualizar servicio
   const updateService = useCallback(async (id: string, s: Partial<Service>) => {
     const updates: any = { ...s };
     delete updates.id;
 
     const { error } = await supabase.from('services').update(updates).eq('id', id);
-    if (error) console.error("Error updating service:", error);
+    if (error) console.error("Error al actualizar servicio:", error);
   }, []);
 
+  // Eliminar servicio
   const deleteService = useCallback(async (id: string) => {
     const { count, error: countErr } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('service_id', id);
     if (!countErr && count && count > 0) {
@@ -622,11 +631,12 @@ export const useGesfilStore = () => {
     }
     const { error } = await supabase.from('services').delete().eq('id', id);
     if (error) {
-      console.error("Error deleting service:", error);
+      console.error("Error al eliminar servicio:", error);
       alert('Error al eliminar el servicio. Verifique que no existan registros dependientes.');
     }
   }, []);
 
+  // Agregar módulo de atención
   const addStation = useCallback(async (s: Omit<Station, 'id'>) => {
     const { error } = await supabase.from('stations').insert({
       name: s.name,
@@ -636,11 +646,12 @@ export const useGesfilStore = () => {
       active: s.active
     });
     if (error) {
-      console.error('Error adding station:', error);
+      console.error('Error al agregar módulo:', error);
       alert('Error al agregar el módulo.');
     }
   }, []);
 
+  // Actualizar módulo de atención
   const updateStation = useCallback(async (id: string, s: Partial<Station>) => {
     const updates: any = {};
     if (s.name !== undefined) updates.name = s.name;
@@ -651,11 +662,12 @@ export const useGesfilStore = () => {
 
     const { error } = await supabase.from('stations').update(updates).eq('id', id);
     if (error) {
-      console.error('Error updating station:', error);
+      console.error('Error al actualizar módulo:', error);
       alert('Error al actualizar el módulo.');
     }
   }, []);
 
+  // Eliminar módulo de atención
   const deleteStation = useCallback(async (id: string) => {
     const { count, error: countErr } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('station_id', id);
     if (!countErr && count && count > 0) {
@@ -664,33 +676,37 @@ export const useGesfilStore = () => {
     }
     const { error } = await supabase.from('stations').delete().eq('id', id);
     if (error) {
-      console.error("Error deleting station:", error);
+      console.error("Error al eliminar módulo:", error);
       alert('Error al eliminar el módulo. Verifique dependencias.');
     }
   }, []);
 
+  // Agregar impresora
   const addPrinter = useCallback(async (pr: Omit<Printer, 'id'>) => {
     const { error } = await supabase.from('printers').insert(pr);
-    if (error) console.error("Error adding printer:", error);
+    if (error) console.error("Error al agregar impresora:", error);
   }, []);
 
+  // Actualizar impresora
   const updatePrinter = useCallback(async (id: string, pr: Partial<Printer>) => {
     const updates: any = { ...pr };
     delete updates.id;
     const { error } = await supabase.from('printers').update(updates).eq('id', id);
-    if (error) console.error("Error updating printer:", error);
+    if (error) console.error("Error al actualizar impresora:", error);
   }, []);
 
+  // Eliminar impresora
   const deletePrinter = useCallback(async (id: string) => {
     const { error } = await supabase.from('printers').delete().eq('id', id);
-    if (error) console.error("Error deleting printer:", error);
+    if (error) console.error("Error al eliminar impresora:", error);
   }, []);
 
+  // Purgar y reiniciar el sistema
   const resetSystem = useCallback(async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Instant optimistic state reset & broadcast
+      // Reinicio optimista inmediato en memoria y aviso a todas las pantallas
       setState(prev => ({
         ...prev,
         tickets: [],
@@ -707,7 +723,7 @@ export const useGesfilStore = () => {
         .neq('id', '00000000-0000-0000-0000-000000000000');
         
       if (deleteError) {
-        console.error('Delete error:', deleteError);
+        console.error('Error al purgar turnos:', deleteError);
         throw deleteError;
       }
       
@@ -715,11 +731,12 @@ export const useGesfilStore = () => {
       
       alert('Sistema purgado correctamente. Los turnos han sido reiniciados.');
     } catch (error) {
-      console.error('Error during system purge:', error);
+      console.error('Error al purgar el sistema:', error);
       alert('Error al purgar el sistema.');
     }
   }, []);
 
+  // Verificar si un servicio se encuentra activo según horarios
   const isServiceActive = useCallback((service: Service, station?: Station) => {
     if (!service.active) return false;
     
@@ -735,12 +752,14 @@ export const useGesfilStore = () => {
     return true;
   }, []);
 
+  // Actualizar configuración del display (sonido, volumen, duración)
   const updateDisplaySettings = useCallback(async (settings: { notificationSound: string; notificationVolume?: number; notificationDuration?: number }) => {
     setState(prev => ({ ...prev, displaySettings: settings }));
     const { error } = await supabase.from('system_config').upsert({ key: 'displaySettings', value: settings });
-    if (error) console.error("Error updating display settings:", error);
+    if (error) console.error("Error al guardar ajustes de pantalla:", error);
   }, []);
 
+  // Inicializar base de datos con datos por defecto
   const seedDatabase = useCallback(async () => {
     setLoading(true);
     try {
@@ -789,7 +808,7 @@ export const useGesfilStore = () => {
       broadcastScreenEvent({ type: 'FULL_REFRESH' });
       alert('Base de datos inicializada con éxito en Supabase.');
     } catch (error) {
-      console.error('Error seeding database:', error);
+      console.error('Error al inicializar base de datos:', error);
       alert('Error al inicializar la base de datos.');
     } finally {
       setLoading(false);

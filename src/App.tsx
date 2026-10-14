@@ -106,7 +106,7 @@ const AdminPanel: React.FC<{
         onClose={() => setShowResetModal(false)}
         onConfirm={reset}
         title="Purgar Sistema"
-        message="¿Confirmar purga diaria? Esta acción eliminará únicamente los tickets del día de hoy y reiniciará los correlativos a 0001, manteniendo el historial de días anteriores."
+        message="¿Confirmar purga diaria? Esta acción eliminará todos los tickets y reiniciará los turnos a 0001."
       />
       <ConfirmationModal 
         isOpen={showSeedModal}
@@ -119,7 +119,7 @@ const AdminPanel: React.FC<{
         message="¿Está seguro de que desea inicializar la base de datos? Esta acción eliminará TODOS los datos actuales (tickets, módulos, servicios, usuarios excepto superadmin) y cargará los datos por defecto. Esta acción es irreversible."
       />
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        {/* Navigation Rail */}
+        {/* Barra lateral de navegación */}
         <aside className="xl:col-span-2 space-y-6">
           <div className="bg-white rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/40 border border-slate-100">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-5 py-4">Workspace</p>
@@ -199,7 +199,7 @@ const AdminPanel: React.FC<{
           </div>
         </aside>
 
-        {/* Main Administrative Workspace */}
+        {/* Espacio de trabajo administrativo principal */}
         <main className="xl:col-span-10 bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl shadow-slate-200/40 overflow-hidden flex flex-col min-h-[750px] relative">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent"></div>
           
@@ -345,7 +345,7 @@ const StaffController: React.FC<{
   return (
     <StaffView 
       station={activeStation || null} 
-      allStations={stations.filter(s => s.active)}
+      allStations={isAdmin ? stations.filter(s => s.active) : stations.filter(s => s.id === user.assignedStationId && s.active)}
       tickets={tickets} 
       services={services} 
       userRole={user.role}
@@ -389,7 +389,7 @@ const App: React.FC = () => {
   } = useGesfilStore();
 
   if (!state.currentUser) {
-    return <LoginViewComponent onLogin={login} />;
+    return <LoginViewComponent onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;
   }
 
   const role = state.currentUser.role;

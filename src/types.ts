@@ -35,8 +35,8 @@ export interface Service {
 
 export interface StationServiceConfig {
   serviceId: string;
-  startTime?: string; // HH:mm
-  endTime?: string;   // HH:mm
+  startTime?: string; // Formato hora: HH:mm
+  endTime?: string;   // Formato hora: HH:mm
 }
 
 export interface Station {
@@ -76,7 +76,7 @@ export interface Printer {
   id: string;
   name: string;
   type: PrinterType;
-  address?: string; // IP or USB ID
+  address?: string; // Dirección IP o identificador USB
   port?: number;
   active: boolean;
 }

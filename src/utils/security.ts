@@ -1,7 +1,7 @@
-// Security & Input Sanitization Utilities for GESFIL
+// Utilidades de seguridad y validación de entradas para GESFIL
 
 /**
- * Sanitizes text input to prevent XSS and script injection.
+ * Limpia el texto ingresado para prevenir inyecciones de código o ataques XSS.
  */
 export const sanitizeInput = (input: string): string => {
   if (!input) return '';
@@ -15,7 +15,7 @@ export const sanitizeInput = (input: string): string => {
 };
 
 /**
- * Validates username format (alphanumeric, underscores, hyphens, 3-30 chars).
+ * Valida el formato del nombre de usuario (letras, números, guiones, entre 3 y 30 caracteres).
  */
 export const isValidUsername = (username: string): boolean => {
   const regex = /^[a-zA-Z0-9_.-]{3,30}$/;
@@ -23,7 +23,7 @@ export const isValidUsername = (username: string): boolean => {
 };
 
 /**
- * Validates service prefix format (uppercase letters, 1-4 chars).
+ * Valida el formato del prefijo del servicio (letras mayúsculas, de 1 a 4 caracteres).
  */
 export const isValidPrefix = (prefix: string): boolean => {
   const regex = /^[A-Z]{1,4}$/;
@@ -31,11 +31,11 @@ export const isValidPrefix = (prefix: string): boolean => {
 };
 
 /**
- * Validates station name and operator name.
+ * Valida nombres de módulos y operadores (entre 2 y 50 caracteres limpios).
  */
 export const isValidName = (name: string): boolean => {
   if (!name || name.trim().length < 2 || name.trim().length > 50) return false;
-  // Disallow suspicious script tags or HTML injection
+  // Bloquear etiquetas script o código HTML sospechoso
   const low = name.toLowerCase();
   if (low.includes('<script') || low.includes('javascript:') || low.includes('onerror=')) {
     return false;
@@ -44,7 +44,7 @@ export const isValidName = (name: string): boolean => {
 };
 
 /**
- * Secure string comparison to prevent timing attacks for local credentials.
+ * Comparación segura de textos en tiempo constante para evitar ataques de temporización.
  */
 export const secureCompare = (a: string, b: string): boolean => {
   if (typeof a !== 'string' || typeof b !== 'string') return false;

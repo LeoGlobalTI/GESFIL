@@ -5,9 +5,9 @@ import { Service, Station } from '@/types';
 export const CORPORATE_INFO = {
   name: 'GESFIL',
   systemName: 'GESFIL Enterprise Suite',
-  version: 'v4.2.0 Corporate Edition',
-  versionTag: 'v4.2.0 Enterprise',
-  build: '2026.10-R4',
+  version: 'v4.3.0 Corporate Edition',
+  versionTag: 'v4.3.0 Enterprise',
+  build: '2026.10-R5',
   releaseDate: '14 de Octubre de 2026',
   company: 'Global TI',
   companyFullName: 'Global TI SpA',
@@ -17,7 +17,7 @@ export const CORPORATE_INFO = {
   status: 'ONLINE',
 };
 
-// Fix: Added missing 'active' property to initial services
+// Servicios iniciales predeterminados
 export const INITIAL_SERVICES: Service[] = [
   { id: '00000000-0000-0000-0000-000000000001', name: 'Triaje', prefix: 'TR', color: '#3b82f6', description: 'Evaluación inicial de pacientes', active: true },
   { id: '00000000-0000-0000-0000-000000000002', name: 'Farmacia', prefix: 'FM', color: '#10b981', description: 'Entrega de medicamentos', active: true },
@@ -25,7 +25,7 @@ export const INITIAL_SERVICES: Service[] = [
   { id: '00000000-0000-0000-0000-000000000004', name: 'Consultas', prefix: 'CN', color: '#8b5cf6', description: 'Atención médica general', active: true },
 ];
 
-// Fix: Added missing 'active' property to initial stations
+// Módulos iniciales de atención predeterminados
 export const INITIAL_STATIONS: Station[] = [
   { id: '00000000-0000-0000-0000-000000000011', name: 'Módulo 01', operatorName: 'Juan Pérez', serviceIds: ['00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000004'], active: true },
   { id: '00000000-0000-0000-0000-000000000012', name: 'Módulo 02', operatorName: 'María García', serviceIds: ['00000000-0000-0000-0000-000000000002'], active: true },
