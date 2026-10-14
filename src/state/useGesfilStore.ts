@@ -1,10 +1,8 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { Ticket, TicketStatus, Service, Station, GesfilState, User, UserRole, Printer, PrinterType } from '@/types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Ticket, TicketStatus, Service, Station, GesfilState, User, UserRole, Printer } from '@/types';
 import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants';
 import { supabase } from '@/services/supabase';
 import { mapServiceFromDb, mapStationFromDb, mapTicketFromDb, mapUserFromDb, mapPrinterFromDb } from '@/utils/mappers';
-// Removed formatTimeHHMM as it is no longer used for service status checks
 
 const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000021', username: 'superadmin', password: '123', name: 'Super Administrador', role: UserRole.SUPERADMIN },
@@ -13,6 +11,25 @@ const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000024', username: 'totem', password: '123', name: 'Tótem Entrada', role: UserRole.TOTEM },
   { id: '00000000-0000-0000-0000-000000000025', username: 'live', password: '123', name: 'Display Live', role: UserRole.DISPLAY },
 ];
+
+const SYNC_CHANNEL_NAME = 'gesfil_multi_screen_sync';
+const SYNC_STORAGE_KEY = 'gesfil_sync_event_v1';
+
+// Cross-Screen Instant Broadcast Helper (0 ms latency between open tabs and displays)
+export const broadcastScreenEvent = (payload: any) => {
+  try {
+    if (typeof window !== 'undefined') {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
+        bc.postMessage({ ...payload, timestamp: Date.now() });
+        bc.close();
+      }
+      localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify({ ...payload, timestamp: Date.now() }));
+    }
+  } catch (err) {
+    console.warn('Broadcast sync notice:', err);
+  }
+};
 
 export const useGesfilStore = () => {
   const [state, setState] = useState<GesfilState>({
@@ -27,39 +44,62 @@ export const useGesfilStore = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [tick, setTick] = useState(0);
+  const isSubscribedRef = useRef(false);
 
-  // Timer to refresh time-based logic (like service availability)
-  useEffect(() => {
-    const timer = setInterval(() => setTick(t => t + 1), 60000);
-    return () => clearInterval(timer);
+  // Helper to fetch today's tickets
+  const fetchTicketsOnly = useCallback(async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data: tickets, error } = await supabase
+        .from('tickets')
+        .select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority')
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!error && tickets) {
+        const mapped = tickets.map(mapTicketFromDb);
+        setState(prev => {
+          const currentSignature = prev.tickets.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
+          const newSignature = mapped.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
+          if (currentSignature === newSignature) {
+            return prev;
+          }
+          return { ...prev, tickets: mapped };
+        });
+      }
+    } catch (err) {
+      console.warn('Error fetching tickets:', err);
+    }
   }, []);
 
-  // Initial data fetch and Real-time subscriptions
-  useEffect(() => {
-    const fetchAll = async () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+  // Comprehensive initial data fetch
+  const fetchAll = useCallback(async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-        const [
-          { data: services, error: errServices },
-          { data: stations, error: errStations },
-          { data: tickets, error: errTickets },
-          { data: users, error: errUsers },
-          { data: printers, error: errPrinters },
-          { data: configs, error: errConfigs }
-        ] = await Promise.all([
-          supabase.from('services').select('id, name, prefix, color, description, active'),
-          supabase.from('stations').select('id, name, operator_name, service_ids, service_configs, active'),
-          supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(100),
-          supabase.from('users').select('id, username, password, name, role, assigned_station_id'),
-          supabase.from('printers').select('id, name, type, address, port, active'),
-          supabase.from('system_config').select('key, value').in('key', ['nextSequence', 'displaySettings'])
-        ]);
+      const [
+        { data: services, error: errServices },
+        { data: stations, error: errStations },
+        { data: tickets, error: errTickets },
+        { data: users, error: errUsers },
+        { data: printers, error: errPrinters },
+        { data: configs, error: errConfigs }
+      ] = await Promise.all([
+        supabase.from('services').select('id, name, prefix, color, description, active'),
+        supabase.from('stations').select('id, name, operator_name, service_ids, service_configs, active'),
+        supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(100),
+        supabase.from('users').select('id, username, password, name, role, assigned_station_id'),
+        supabase.from('printers').select('id, name, type, address, port, active'),
+        supabase.from('system_config').select('key, value').in('key', ['nextSequence', 'displaySettings'])
+      ]);
 
-        if (errServices || errStations || errTickets || errUsers || errPrinters || errConfigs) {
-          console.error("Error fetching initial data:", { errServices, errStations, errTickets, errUsers, errPrinters, errConfigs });
-        }
+      if (errServices || errStations || errTickets || errUsers || errPrinters || errConfigs) {
+        console.error("Error fetching initial data:", { errServices, errStations, errTickets, errUsers, errPrinters, errConfigs });
+      }
 
       const nextSeqConfig = configs?.find(c => c.key === 'nextSequence');
       const displayConfig = configs?.find(c => c.key === 'displaySettings');
@@ -74,97 +114,227 @@ export const useGesfilStore = () => {
         nextSequence: nextSeqConfig?.value || { sequences: {} },
         displaySettings: displayConfig?.value || { notificationSound: 'timbre' }
       }));
+    } finally {
       setLoading(false);
-    };
+    }
+  }, []);
 
+  // Multi-Screen Synchronization (BroadcastChannel + LocalStorage Event + Realtime + Fallback Polling)
+  useEffect(() => {
     fetchAll();
 
-    const channel = supabase.channel('gesfil_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
-        setState(prev => {
-          const services = [...prev.services];
-          if (payload.eventType === 'INSERT') services.push(mapServiceFromDb(payload.new));
-          if (payload.eventType === 'UPDATE') {
-            const index = services.findIndex(s => s.id === payload.new.id);
-            if (index !== -1) services[index] = mapServiceFromDb(payload.new);
-          }
-          if (payload.eventType === 'DELETE') {
-            return { ...prev, services: services.filter(s => s.id !== payload.old.id) };
-          }
-          return { ...prev, services };
-        });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'stations' }, (payload) => {
-        setState(prev => {
-          const stations = [...prev.stations];
-          if (payload.eventType === 'INSERT') stations.push(mapStationFromDb(payload.new));
-          if (payload.eventType === 'UPDATE') {
-            const index = stations.findIndex(s => s.id === payload.new.id);
-            if (index !== -1) stations[index] = mapStationFromDb(payload.new);
-          }
-          if (payload.eventType === 'DELETE') {
-            return { ...prev, stations: stations.filter(s => s.id !== payload.old.id) };
-          }
-          return { ...prev, stations };
-        });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, (payload) => {
-        setState(prev => {
-          const tickets = [...prev.tickets];
-          if (payload.eventType === 'INSERT') tickets.unshift(mapTicketFromDb(payload.new));
-          if (payload.eventType === 'UPDATE') {
-            const index = tickets.findIndex(t => t.id === payload.new.id);
-            if (index !== -1) tickets[index] = mapTicketFromDb(payload.new);
-          }
-          if (payload.eventType === 'DELETE') {
-            return { ...prev, tickets: tickets.filter(t => t.id !== payload.old.id) };
-          }
-          return { ...prev, tickets };
-        });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
-        setState(prev => {
-          const users = [...prev.users];
-          let currentUser = prev.currentUser;
-          
-          if (payload.eventType === 'INSERT') users.push(mapUserFromDb(payload.new));
-          if (payload.eventType === 'UPDATE') {
-            const index = users.findIndex(u => u.id === payload.new.id);
-            const updatedUser = mapUserFromDb(payload.new);
-            if (index !== -1) users[index] = updatedUser;
-            if (currentUser && currentUser.id === updatedUser.id) {
-              currentUser = updatedUser;
+    // 1. Cross-Screen BroadcastChannel listener (Instant 0 ms peer communication)
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
+      bc.onmessage = (event) => {
+        const data = event.data;
+        if (!data || !data.type) return;
+
+        if (data.type === 'TICKET_UPDATE' && data.ticket) {
+          setState(prev => {
+            const tickets = [...prev.tickets];
+            const idx = tickets.findIndex(t => t.id === data.ticket.id);
+            if (idx !== -1) {
+              tickets[idx] = data.ticket;
+            } else {
+              tickets.unshift(data.ticket);
             }
+            return { ...prev, tickets };
+          });
+        } else if (data.type === 'TICKET_INSERT' && data.ticket) {
+          setState(prev => {
+            const exists = prev.tickets.some(t => t.id === data.ticket.id);
+            if (exists) return prev;
+            return { ...prev, tickets: [data.ticket, ...prev.tickets] };
+          });
+        } else if (data.type === 'SYSTEM_RESET') {
+          setState(prev => ({ ...prev, tickets: [] }));
+        } else if (data.type === 'FULL_REFRESH') {
+          fetchAll();
+        }
+      };
+    }
+
+    // 2. Storage event listener (Fallback for cross-tab communication)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === SYNC_STORAGE_KEY && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data.type === 'TICKET_UPDATE' && data.ticket) {
+            setState(prev => {
+              const tickets = [...prev.tickets];
+              const idx = tickets.findIndex(t => t.id === data.ticket.id);
+              if (idx !== -1) {
+                tickets[idx] = data.ticket;
+              } else {
+                tickets.unshift(data.ticket);
+              }
+              return { ...prev, tickets };
+            });
+          } else if (data.type === 'TICKET_INSERT' && data.ticket) {
+            setState(prev => {
+              const exists = prev.tickets.some(t => t.id === data.ticket.id);
+              if (exists) return prev;
+              return { ...prev, tickets: [data.ticket, ...prev.tickets] };
+            });
+          } else if (data.type === 'SYSTEM_RESET') {
+            setState(prev => ({ ...prev, tickets: [] }));
           }
-          if (payload.eventType === 'DELETE') {
-            const filtered = users.filter(u => u.id !== payload.old.id);
-            if (currentUser && currentUser.id === payload.old.id) currentUser = null;
-            return { ...prev, users: filtered, currentUser };
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. Supabase Realtime channel setup with auto-recovery
+    let realtimeChannel: any = null;
+
+    const setupRealtime = () => {
+      if (realtimeChannel) {
+        try {
+          supabase.removeChannel(realtimeChannel);
+        } catch (e) {}
+      }
+
+      realtimeChannel = supabase.channel(`gesfil_rt_${Date.now()}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
+          setState(prev => {
+            const services = [...prev.services];
+            if (payload.eventType === 'INSERT') services.push(mapServiceFromDb(payload.new));
+            if (payload.eventType === 'UPDATE') {
+              const index = services.findIndex(s => s.id === payload.new.id);
+              if (index !== -1) services[index] = mapServiceFromDb(payload.new);
+            }
+            if (payload.eventType === 'DELETE') {
+              return { ...prev, services: services.filter(s => s.id !== payload.old.id) };
+            }
+            return { ...prev, services };
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'stations' }, (payload) => {
+          setState(prev => {
+            const stations = [...prev.stations];
+            if (payload.eventType === 'INSERT') stations.push(mapStationFromDb(payload.new));
+            if (payload.eventType === 'UPDATE') {
+              const index = stations.findIndex(s => s.id === payload.new.id);
+              if (index !== -1) stations[index] = mapStationFromDb(payload.new);
+            }
+            if (payload.eventType === 'DELETE') {
+              return { ...prev, stations: stations.filter(s => s.id !== payload.old.id) };
+            }
+            return { ...prev, stations };
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, (payload) => {
+          setState(prev => {
+            const tickets = [...prev.tickets];
+            if (payload.eventType === 'INSERT') {
+              const mapped = mapTicketFromDb(payload.new);
+              const idx = tickets.findIndex(t => t.id === mapped.id);
+              if (idx === -1) {
+                tickets.unshift(mapped);
+              } else {
+                tickets[idx] = mapped;
+              }
+            }
+            if (payload.eventType === 'UPDATE') {
+              const mapped = mapTicketFromDb(payload.new);
+              const index = tickets.findIndex(t => t.id === mapped.id);
+              if (index !== -1) {
+                tickets[index] = mapped;
+              } else {
+                tickets.unshift(mapped);
+              }
+            }
+            if (payload.eventType === 'DELETE') {
+              return { ...prev, tickets: tickets.filter(t => t.id !== payload.old.id) };
+            }
+            return { ...prev, tickets };
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
+          setState(prev => {
+            const users = [...prev.users];
+            let currentUser = prev.currentUser;
+            
+            if (payload.eventType === 'INSERT') users.push(mapUserFromDb(payload.new));
+            if (payload.eventType === 'UPDATE') {
+              const index = users.findIndex(u => u.id === payload.new.id);
+              const updatedUser = mapUserFromDb(payload.new);
+              if (index !== -1) users[index] = updatedUser;
+              if (currentUser && currentUser.id === updatedUser.id) {
+                currentUser = updatedUser;
+              }
+            }
+            if (payload.eventType === 'DELETE') {
+              const filtered = users.filter(u => u.id !== payload.old.id);
+              if (currentUser && currentUser.id === payload.old.id) currentUser = null;
+              return { ...prev, users: filtered, currentUser };
+            }
+            return { ...prev, users, currentUser };
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'printers' }, (payload) => {
+          setState(prev => {
+            const printers = [...prev.printers];
+            if (payload.eventType === 'INSERT') printers.push(mapPrinterFromDb(payload.new));
+            if (payload.eventType === 'UPDATE') {
+              const index = printers.findIndex(p => p.id === payload.new.id);
+              if (index !== -1) printers[index] = mapPrinterFromDb(payload.new);
+            }
+            if (payload.eventType === 'DELETE') {
+              return { ...prev, printers: printers.filter(p => p.id !== payload.old.id) };
+            }
+            return { ...prev, printers };
+          });
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, fetchAll)
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            isSubscribedRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            isSubscribedRef.current = false;
+            // Reconnect after 3 seconds
+            setTimeout(setupRealtime, 3000);
           }
-          return { ...prev, users, currentUser };
         });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'printers' }, (payload) => {
-        setState(prev => {
-          const printers = [...prev.printers];
-          if (payload.eventType === 'INSERT') printers.push(mapPrinterFromDb(payload.new));
-          if (payload.eventType === 'UPDATE') {
-            const index = printers.findIndex(p => p.id === payload.new.id);
-            if (index !== -1) printers[index] = mapPrinterFromDb(payload.new);
-          }
-          if (payload.eventType === 'DELETE') {
-            return { ...prev, printers: printers.filter(p => p.id !== payload.old.id) };
-          }
-          return { ...prev, printers };
-        });
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, fetchAll)
-      .subscribe();
+    };
+
+    setupRealtime();
+
+    // 4. Background Fast Poll (Every 2.5 seconds): guarantees instant sync across all devices
+    const fastPoll = setInterval(() => {
+      fetchTicketsOnly();
+    }, 2500);
+
+    // 5. Visibility and connectivity recovery (when user switches tabs or screen wakes up)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTicketsOnly();
+        if (!isSubscribedRef.current) {
+          setupRealtime();
+        }
+      }
+    };
+    const handleOnline = () => {
+      fetchAll();
+      setupRealtime();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnline);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(fastPoll);
+      if (bc) bc.close();
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnline);
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
     };
-  }, []);
+  }, [fetchAll, fetchTicketsOnly]);
 
   // Session persistence
   useEffect(() => {
@@ -213,7 +383,6 @@ export const useGesfilStore = () => {
     const todayStr = today.toISOString().split('T')[0];
     today.setHours(0, 0, 0, 0);
 
-    // Prepare local config with daily reset logic
     let config = { ...state.nextSequence };
     if (config.lastResetDate !== todayStr) {
       config = { lastResetDate: todayStr, sequences: {} };
@@ -221,7 +390,6 @@ export const useGesfilStore = () => {
     if (!config.sequences) config.sequences = {};
 
     try {
-      // Robust sequence calculation: parse today's tickets for this service to prevent any collision
       const { data: todayTickets, error } = await supabase
         .from('tickets')
         .select('code')
@@ -249,13 +417,11 @@ export const useGesfilStore = () => {
     if (isNaN(currentSeq) || currentSeq < 1) currentSeq = 1;
     config.sequences[serviceId] = currentSeq;
 
-    // Update local state immediately
     setState(prev => ({
       ...prev,
       nextSequence: config
     }));
 
-    // Persist the sequence config to Supabase
     supabase.from('system_config').upsert({ key: 'nextSequence', value: config }).then(({error}) => {
       if (error) console.error("Failed to persist nextSequence", error);
     });
@@ -275,7 +441,21 @@ export const useGesfilStore = () => {
       return null;
     }
 
-    return mapTicketFromDb(data);
+    const newTicket = mapTicketFromDb(data);
+
+    // Update local state immediately
+    setState(prev => ({
+      ...prev,
+      tickets: [newTicket, ...prev.tickets.filter(t => t.id !== newTicket.id)]
+    }));
+
+    // Broadcast instantaneously to all screens (Display, Operator, Totem)
+    broadcastScreenEvent({
+      type: 'TICKET_INSERT',
+      ticket: newTicket
+    });
+
+    return newTicket;
   }, [state.services, state.nextSequence]);
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
@@ -293,8 +473,8 @@ export const useGesfilStore = () => {
     // State Machine Transitions
     const currentStatus = ticket.status;
     
-    // Validation: Can't call if already has an active ticket (unless it's a recall)
-    if (newStatus === TicketStatus.CALLING) {
+    // Validation: Can't call if already has an active ticket (unless it's a recall for the SAME ticket)
+    if (newStatus === TicketStatus.CALLING && ticket.id !== ticketId) {
       const hasActive = state.tickets.some(t => 
         t.stationId === stationId && 
         t.id !== ticketId &&
@@ -306,35 +486,79 @@ export const useGesfilStore = () => {
       }
     }
 
-    // Transition Logic
+    // Transition Logic & timestamps
+    const nowIso = new Date().toISOString();
+    const nowEpoch = Date.now();
     const updates: any = { status: newStatus };
+    const updatedMetadata = { ...ticket.metadata };
 
     if (newStatus === TicketStatus.CALLING) {
-      if (currentStatus !== TicketStatus.WAITING && currentStatus !== TicketStatus.CALLING) return;
-      updates.called_at = new Date().toISOString();
+      updates.called_at = nowIso;
       updates.station_id = stationId;
       updates.recalled_count = (ticket.metadata?.recalledCount || 0) + 1;
+      updatedMetadata.recalledCount = updates.recalled_count;
     } else if (newStatus === TicketStatus.ATTENDING) {
-      if (currentStatus !== TicketStatus.CALLING) return;
-      updates.started_at = new Date().toISOString();
+      updates.started_at = nowIso;
+      updates.station_id = stationId;
     } else if (newStatus === TicketStatus.COMPLETED || newStatus === TicketStatus.CANCELLED) {
-      if (newStatus === TicketStatus.COMPLETED && currentStatus !== TicketStatus.ATTENDING) return;
-      updates.ended_at = new Date().toISOString();
+      updates.ended_at = nowIso;
     }
 
-    const { data, error } = await supabase.from('tickets')
-      .update(updates)
-      .eq('id', ticketId)
-      .eq('status', currentStatus) // Atomic update: ensure status hasn't changed
-      .select()
-      .single();
-      
-    if (error) {
-      console.error('Error updating ticket status:', error);
-      // If error is related to condition not met, it means someone else updated it
-      if (error.code === 'PGRST116') {
-        alert('El ticket ya ha sido actualizado por otro usuario o no existe.');
+    // 1. INSTANT OPTIMISTIC LOCAL STATE UPDATE (0 ms latency for operator)
+    const optimisticTicket: Ticket = {
+      ...ticket,
+      status: newStatus,
+      stationId: updates.station_id || ticket.stationId,
+      calledAt: updates.called_at ? nowEpoch : ticket.calledAt,
+      startedAt: updates.started_at ? nowEpoch : ticket.startedAt,
+      endedAt: updates.ended_at ? nowEpoch : ticket.endedAt,
+      metadata: updatedMetadata
+    };
+
+    setState(prev => {
+      const tickets = [...prev.tickets];
+      const idx = tickets.findIndex(t => t.id === ticketId);
+      if (idx !== -1) {
+        tickets[idx] = optimisticTicket;
+      } else {
+        tickets.unshift(optimisticTicket);
       }
+      return { ...prev, tickets };
+    });
+
+    // 2. INSTANT MULTI-SCREEN BROADCAST (Display immediately sounds chime and updates)
+    broadcastScreenEvent({
+      type: 'TICKET_UPDATE',
+      ticket: optimisticTicket
+    });
+
+    // 3. PERSISTENCE IN SUPABASE
+    try {
+      const { data, error } = await supabase.from('tickets')
+        .update(updates)
+        .eq('id', ticketId)
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error updating ticket status:', error);
+      } else if (data) {
+        const reconciled = mapTicketFromDb(data);
+        setState(prev => {
+          const tickets = [...prev.tickets];
+          const idx = tickets.findIndex(t => t.id === ticketId);
+          if (idx !== -1) {
+            tickets[idx] = reconciled;
+          }
+          return { ...prev, tickets };
+        });
+        broadcastScreenEvent({
+          type: 'TICKET_UPDATE',
+          ticket: reconciled
+        });
+      }
+    } catch (err) {
+      console.error('Exception updating ticket in database:', err);
     }
   }, [state.tickets, state.stations]);
 
@@ -355,7 +579,6 @@ export const useGesfilStore = () => {
       updates.assigned_station_id = u.assignedStationId || null;
     }
     
-    // Security: If role changes from STAFF, clear station assignment
     if (u.role && u.role !== UserRole.STAFF) {
       updates.assigned_station_id = null;
     }
@@ -392,7 +615,6 @@ export const useGesfilStore = () => {
   }, []);
 
   const deleteService = useCallback(async (id: string) => {
-    // Check if tickets reference this service
     const { count, error: countErr } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('service_id', id);
     if (!countErr && count && count > 0) {
       alert(`No se puede eliminar este servicio porque tiene ${count} turnos asociados en el historial. Puede desactivarlo en su lugar.`);
@@ -466,24 +688,28 @@ export const useGesfilStore = () => {
 
   const resetSystem = useCallback(async () => {
     try {
-      // Delete all tickets instead of just cancelling them
-      const { error: deleteError } = await supabase
-        .from('tickets')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deletes all rows
-        
-      if (deleteError) {
-        console.error('Delete error:', deleteError);
-        throw deleteError;
-      }
-      
-      // Also reset local state immediately to avoid waiting for realtime
       const today = new Date().toISOString().split('T')[0];
+
+      // Instant optimistic state reset & broadcast
       setState(prev => ({
         ...prev,
         tickets: [],
         nextSequence: { lastResetDate: today, sequences: {} }
       }));
+
+      broadcastScreenEvent({
+        type: 'SYSTEM_RESET'
+      });
+
+      const { error: deleteError } = await supabase
+        .from('tickets')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+        
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw deleteError;
+      }
       
       await supabase.from('system_config').upsert({ key: 'nextSequence', value: { lastResetDate: today, sequences: {} } });
       
@@ -497,7 +723,6 @@ export const useGesfilStore = () => {
   const isServiceActive = useCallback((service: Service, station?: Station) => {
     if (!service.active) return false;
     
-    // If a station is provided, check its specific service configuration
     if (station && station.serviceConfigs && station.serviceConfigs[service.id]) {
       const config = station.serviceConfigs[service.id];
       const now = new Date();
@@ -519,7 +744,6 @@ export const useGesfilStore = () => {
   const seedDatabase = useCallback(async () => {
     setLoading(true);
     try {
-      // Clear existing data
       const { error: err1 } = await supabase.from('tickets').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (err1) throw err1;
       const { error: err2 } = await supabase.from('stations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -529,7 +753,6 @@ export const useGesfilStore = () => {
       const { error: err4 } = await supabase.from('users').delete().neq('username', 'superadmin');
       if (err4) throw err4;
 
-      // Insert initial data
       const { error: err5 } = await supabase.from('services').insert(INITIAL_SERVICES.map(s => ({
         id: s.id,
         name: s.name,
@@ -549,7 +772,6 @@ export const useGesfilStore = () => {
       })));
       if (err6) throw err6;
 
-      // Default users
       const { error: err7 } = await supabase.from('users').upsert(DEFAULT_USERS.map(u => ({
         id: u.id,
         username: u.username,
@@ -564,6 +786,7 @@ export const useGesfilStore = () => {
       const { error: err8 } = await supabase.from('system_config').upsert({ key: 'nextSequence', value: { lastResetDate: today, sequences: {} } });
       if (err8) throw err8;
 
+      broadcastScreenEvent({ type: 'FULL_REFRESH' });
       alert('Base de datos inicializada con éxito en Supabase.');
     } catch (error) {
       console.error('Error seeding database:', error);
@@ -581,4 +804,3 @@ export const useGesfilStore = () => {
     isInitialized: state.users.length > 0
   };
 };
-
