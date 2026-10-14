@@ -64,14 +64,18 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
       />
       <div className="max-w-[440px] w-full animate-fade-in">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-sm">G</div>
+            <div className="text-left">
+              <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase leading-none">GES<span className="text-indigo-600">FIL</span></h1>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">By Global TI</p>
             </div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase">GES<span className="text-blue-600">FIL</span></h1>
           </div>
           <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Portal Corporativo</h2>
-          <p className="text-slate-500 mt-2 font-medium">Sistema de Gestion de Fila</p>
+          <p className="text-slate-500 mt-2 font-medium">Sistema de Gestión de Fila Inteligente</p>
+          <a href="https://www.gtitech.cl" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
+            🌐 www.gtitech.cl
+          </a>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 space-y-6">
@@ -133,8 +137,9 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isIniti
           </div>
         </form>
 
-        <footer className="mt-12 text-center">
-           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Powered by Global TI &copy; 2026</p>
+        <footer className="mt-12 text-center space-y-1">
+           <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">GESFIL Enterprise Suite &bull; Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Global TI</a></p>
+           <p className="text-[10px] text-slate-400 font-bold lowercase tracking-wide">www.gtitech.cl</p>
         </footer>
       </div>
     </div>

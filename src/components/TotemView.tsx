@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Service, Printer, PrinterType } from '@/types';
 import { PrinterService } from '@/services/PrinterService';
-import { useQmsStore } from '@/state/useQmsStore';
+import { useGesfilStore } from '@/state/useGesfilStore';
 
 /**
  * Propiedades del componente TotemView.
@@ -29,7 +29,7 @@ interface IssuedTicketInfo {
  * Gestiona la selección de servicios, emisión de tickets y la impresión.
  */
 const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTicket, printers }) => {
-  const { state, isServiceActive: checkActive } = useQmsStore();
+  const { state, isServiceActive: checkActive } = useGesfilStore();
   const [issuedTicket, setIssuedTicket] = useState<IssuedTicketInfo | null>(null);
   const [isPriority, setIsPriority] = useState<boolean | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
@@ -71,8 +71,10 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
           wakeLock = await (navigator as any).wakeLock.request('screen');
           console.log('Wake Lock activo');
         }
-      } catch (err) {
-        console.error(`${err.name}, ${err.message}`);
+      } catch (err: any) {
+        if (err?.name !== 'NotAllowedError' && err?.name !== 'SecurityError') {
+          console.warn('Wake Lock no disponible:', err?.message);
+        }
       }
     };
 
@@ -357,8 +359,12 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
       <div className="max-w-5xl mx-auto px-8 py-12 min-h-[calc(100vh-8rem)] flex flex-col justify-center">
         {renderPrintError()}
         <header className="text-center mb-8 md:mb-12 animate-fade-in">
+          <div className="inline-flex items-center gap-2.5 px-4 py-2 bg-indigo-50 border border-indigo-100 rounded-full mb-6 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-900">GESFIL &bull; Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Global TI</a></span>
+          </div>
           <div 
-            className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-indigo-200 animate-float"
+            className="w-16 h-16 md:w-20 md:h-20 bg-indigo-600 rounded-2xl md:rounded-[2rem] flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-2xl shadow-indigo-200 animate-float cursor-pointer"
             onClick={handleSecretClick}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:w-9 md:h-9">
@@ -463,8 +469,9 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
         ))}
       </div>
 
-      <footer className="mt-20 text-center opacity-40">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">GESFIL • Terminal de Autoservicio</p>
+      <footer className="mt-20 text-center space-y-1">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em]">GESFIL &bull; Terminal de Autoservicio</p>
+        <p className="text-[10px] font-bold text-slate-400">Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Global TI</a> www.gtitech.cl</p>
       </footer>
       {dockStyle}
     </div>

@@ -1,9 +1,9 @@
 
 import React, { useMemo } from 'react';
-import { QmsState, UserRole } from '@/types';
+import { GesfilState, UserRole } from '@/types';
 
 interface TechnicalInfoViewProps {
-  state: QmsState;
+  state: GesfilState;
   isSidebar?: boolean;
   compact?: boolean;
 }

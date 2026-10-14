@@ -81,7 +81,7 @@ export interface Printer {
   active: boolean;
 }
 
-export interface QmsState {
+export interface GesfilState {
   services: Service[];
   stations: Station[];
   tickets: Ticket[];

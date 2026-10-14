@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { useQmsStore } from '@/state/useQmsStore';
+import { useGesfilStore } from '@/state/useGesfilStore';
 import { ICONS } from '@/constants';
-import { UserRole, User, Service, Station, QmsState, Ticket, TicketStatus, Printer } from '@/types';
+import { UserRole, User, Service, Station, GesfilState, Ticket, TicketStatus, Printer } from '@/types';
 import ConfirmationModal from '@/components/ConfirmationModal';
 import TotemView from '@/components/TotemView';
 import StaffView from '@/components/StaffView';
@@ -71,7 +71,7 @@ const Nav: React.FC<{ role: UserRole, logout: () => void, currentUser: User }> =
 };
 
 const AdminPanel: React.FC<{ 
-  state: QmsState,
+  state: GesfilState,
   reset: () => void, 
   seed: () => void,
   userRole: UserRole, 
@@ -125,15 +125,15 @@ const AdminPanel: React.FC<{
                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
                </div>
                <div>
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-3 mb-1">
                     <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-                    <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.5em] leading-none">Global Controller</p>
+                    <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.4em] leading-none">Global TI &bull; www.gtitech.cl</p>
                   </div>
-                  <h1 className="text-4xl font-black tracking-tight">GESFIL Infrastructure Hub</h1>
+                  <h1 className="text-3xl lg:text-4xl font-black tracking-tight">GESFIL Infrastructure Hub</h1>
                </div>
             </div>
             <p className="text-slate-400 text-sm font-medium max-w-xl leading-relaxed">
-              Panel de administración de nivel empresarial. Controle el flujo de pacientes, gestione operarios y supervise el rendimiento del sistema en tiempo real.
+              Panel de administración de nivel empresarial de <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-400 underline">Global TI</a>. Controle el flujo de pacientes, gestione operarios y supervise el rendimiento del sistema en tiempo real.
             </p>
           </div>
           
@@ -374,7 +374,7 @@ const App: React.FC = () => {
     addStation, updateStation, deleteStation,
     addPrinter, updatePrinter, deletePrinter, updateDisplaySettings,
     isServiceActive, seedDatabase
-  } = useQmsStore();
+  } = useGesfilStore();
 
   if (!state.currentUser) {
     return <LoginViewComponent onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;

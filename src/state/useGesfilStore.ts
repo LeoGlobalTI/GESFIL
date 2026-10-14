@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { Ticket, TicketStatus, Service, Station, QmsState, User, UserRole, Printer, PrinterType } from '@/types';
+import { Ticket, TicketStatus, Service, Station, GesfilState, User, UserRole, Printer, PrinterType } from '@/types';
 import { INITIAL_SERVICES, INITIAL_STATIONS } from '@/constants';
 import { supabase } from '@/services/supabase';
 import { mapServiceFromDb, mapStationFromDb, mapTicketFromDb, mapUserFromDb, mapPrinterFromDb } from '@/utils/mappers';
@@ -14,8 +14,8 @@ const DEFAULT_USERS: User[] = [
   { id: '00000000-0000-0000-0000-000000000025', username: 'live', password: '123', name: 'Display Live', role: UserRole.DISPLAY },
 ];
 
-export const useQmsStore = () => {
-  const [state, setState] = useState<QmsState>({
+export const useGesfilStore = () => {
+  const [state, setState] = useState<GesfilState>({
     services: [],
     stations: [],
     tickets: [],
@@ -79,7 +79,7 @@ export const useQmsStore = () => {
 
     fetchAll();
 
-    const channel = supabase.channel('qms_realtime')
+    const channel = supabase.channel('gesfil_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
         setState(prev => {
           const services = [...prev.services];
@@ -221,25 +221,32 @@ export const useQmsStore = () => {
     if (!config.sequences) config.sequences = {};
 
     try {
-      // Count tickets for this service today to determine the next sequence
-      const { count, error } = await supabase
+      // Robust sequence calculation: parse today's tickets for this service to prevent any collision
+      const { data: todayTickets, error } = await supabase
         .from('tickets')
-        .select('*', { count: 'exact', head: true })
+        .select('code')
         .eq('service_id', serviceId)
         .gte('created_at', today.toISOString());
         
-      if (!error && count !== null) {
-        currentSeq = count + 1;
-      } else {
-        console.warn('Count failed, using fallback sequence generation', error);
-        currentSeq = (config.sequences[serviceId] || 0) + 1;
+      let maxNum = 0;
+      if (!error && todayTickets) {
+        todayTickets.forEach(t => {
+          if (t.code && t.code.startsWith(service.prefix)) {
+            const numPart = parseInt(t.code.replace(service.prefix, ''), 10);
+            if (!isNaN(numPart) && numPart > maxNum) {
+              maxNum = numPart;
+            }
+          }
+        });
       }
+      const localSeq = config.sequences[serviceId] || 0;
+      currentSeq = Math.max(maxNum + 1, localSeq + 1);
     } catch (err) {
-      console.error('Error during sequence increment:', err);
+      console.error('Error during sequence calculation:', err);
       currentSeq = (config.sequences[serviceId] || 0) + 1;
     }
 
-    if (isNaN(currentSeq)) currentSeq = 1;
+    if (isNaN(currentSeq) || currentSeq < 1) currentSeq = 1;
     config.sequences[serviceId] = currentSeq;
 
     // Update local state immediately
@@ -385,8 +392,17 @@ export const useQmsStore = () => {
   }, []);
 
   const deleteService = useCallback(async (id: string) => {
+    // Check if tickets reference this service
+    const { count, error: countErr } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('service_id', id);
+    if (!countErr && count && count > 0) {
+      alert(`No se puede eliminar este servicio porque tiene ${count} turnos asociados en el historial. Puede desactivarlo en su lugar.`);
+      return;
+    }
     const { error } = await supabase.from('services').delete().eq('id', id);
-    if (error) console.error("Error deleting service:", error);
+    if (error) {
+      console.error("Error deleting service:", error);
+      alert('Error al eliminar el servicio. Verifique que no existan registros dependientes.');
+    }
   }, []);
 
   const addStation = useCallback(async (s: Omit<Station, 'id'>) => {
@@ -419,8 +435,16 @@ export const useQmsStore = () => {
   }, []);
 
   const deleteStation = useCallback(async (id: string) => {
+    const { count, error: countErr } = await supabase.from('tickets').select('*', { count: 'exact', head: true }).eq('station_id', id);
+    if (!countErr && count && count > 0) {
+      alert(`No se puede eliminar este módulo porque tiene ${count} turnos atendidos asociados. Puede desactivarlo en su lugar.`);
+      return;
+    }
     const { error } = await supabase.from('stations').delete().eq('id', id);
-    if (error) console.error("Error deleting station:", error);
+    if (error) {
+      console.error("Error deleting station:", error);
+      alert('Error al eliminar el módulo. Verifique dependencias.');
+    }
   }, []);
 
   const addPrinter = useCallback(async (pr: Omit<Printer, 'id'>) => {

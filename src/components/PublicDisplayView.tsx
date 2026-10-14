@@ -21,6 +21,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
   const [now, setNow] = useState(new Date());
   const [lastCalledTicketId, setLastCalledTicketId] = useState<string | null>(null);
   const [lastRecalledCount, setLastRecalledCount] = useState<number>(0);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   // Efecto para actualizar el reloj cada segundo
   useEffect(() => {
@@ -34,8 +35,10 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           wakeLock = await (navigator as any).wakeLock.request('screen');
           console.log('Wake Lock activo');
         }
-      } catch (err) {
-        console.error(`${err.name}, ${err.message}`);
+      } catch (err: any) {
+        if (err?.name !== 'NotAllowedError' && err?.name !== 'SecurityError') {
+          console.warn('Wake Lock no disponible:', err?.message);
+        }
       }
     };
 
@@ -89,16 +92,41 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
     }
   }, [activeCalls, lastCalledTicketId, lastRecalledCount, displaySettings?.notificationSound, displaySettings?.notificationVolume, displaySettings?.notificationDuration]);
 
-  // Filtra y ordena los tickets en espera
+  // Filtra y ordena los tickets en espera (Prioridad primero, luego cronológico)
   const waitingList = useMemo(() => 
     tickets
       .filter(t => t.status === TicketStatus.WAITING)
-      .sort((a, b) => a.createdAt - b.createdAt)
+      .sort((a, b) => {
+        const aPriority = a.metadata?.priority ? 1 : 0;
+        const bPriority = b.metadata?.priority ? 1 : 0;
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        return a.createdAt - b.createdAt;
+      })
       .slice(0, 10),
   [tickets]);
 
   return (
     <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12 font-sans flex flex-col overflow-hidden selection:bg-indigo-500">
+      {!audioUnlocked && (
+        <div className="bg-indigo-600/90 backdrop-blur-md text-white px-6 py-4 rounded-3xl flex flex-col sm:flex-row items-center justify-between shadow-2xl mb-6 gap-4 border border-indigo-400/30 animate-pulse">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <span className="text-2xl">🔊</span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider">Habilitar Alertas de Audio en Sala</p>
+              <p className="text-[10px] text-indigo-200">Requerido por el navegador para reproducir llamados de voz y timbre.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => {
+              playNotificationSound(displaySettings?.notificationSound || 'timbre', 1, 0.5);
+              setAudioUnlocked(true);
+            }}
+            className="px-6 py-2.5 bg-white text-indigo-900 text-xs font-black rounded-2xl hover:bg-slate-100 transition-all uppercase tracking-widest shadow-lg flex-shrink-0"
+          >
+            Activar Audio
+          </button>
+        </div>
+      )}
       {/* Encabezado: Logo, nombre y reloj */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-10 md:mb-16 animate-fade-in gap-6">
         <div className="flex items-center gap-4 md:gap-8">
@@ -106,8 +134,11 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="md:w-8 md:h-8"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>
           </div>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-none">GESFIL<span className="text-indigo-500">.</span></h1>
-            <p className="text-slate-500 font-bold uppercase tracking-[0.4em] text-[8px] md:text-[10px] mt-2">Display Center Premium</p>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl md:text-4xl font-black tracking-tight leading-none text-white">GESFIL<span className="text-indigo-500">.</span></h1>
+              <span className="px-2.5 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[9px] font-black uppercase tracking-widest rounded-full">Global TI &bull; www.gtitech.cl</span>
+            </div>
+            <p className="text-slate-400 font-bold uppercase tracking-[0.4em] text-[8px] md:text-[10px]">Display Center Premium</p>
           </div>
         </div>
         
@@ -218,13 +249,13 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
            <span className="text-[9px] md:text-[11px] font-black text-indigo-500 uppercase tracking-[0.4em]">GESFIL ENTERPRISE</span>
            <div className="hidden md:block w-1 h-1 bg-slate-700 rounded-full"></div>
-           <span className="text-[9px] md:text-[11px] font-bold text-slate-600 uppercase tracking-widest text-center">Sincronización en tiempo real con Nodo Central</span>
+           <span className="text-[9px] md:text-[11px] font-bold text-slate-400 uppercase tracking-widest text-center">Powered by <a href="https://www.gtitech.cl" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Global TI</a> &bull; www.gtitech.cl</span>
         </div>
         <div className="flex flex-wrap justify-center gap-4">
           {services.slice(0, 4).map(s => (
             <div key={s.id} className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">{s.name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{s.name}</span>
             </div>
           ))}
         </div>

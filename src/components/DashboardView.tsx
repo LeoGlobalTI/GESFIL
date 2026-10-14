@@ -111,6 +111,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
       let sServiceCount = 0;
 
       sTickets.forEach(t => {
+        if (t.status === TicketStatus.CANCELLED) return; // Exclude cancelled/abandoned tickets
         if (t.calledAt) {
           sWaitTime += (t.calledAt - t.createdAt);
           sWaitCount++;
