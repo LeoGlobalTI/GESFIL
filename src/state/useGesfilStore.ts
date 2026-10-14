@@ -221,26 +221,27 @@ export const useGesfilStore = () => {
     if (!config.sequences) config.sequences = {};
 
     try {
-      // Robust sequence calculation: parse today's tickets for this service to prevent any collision
-      const { data: todayTickets, error } = await supabase
+      // Fast sequence calculation: query only the latest ticket of today for this service
+      const { data: latestTicket, error } = await supabase
         .from('tickets')
         .select('code')
         .eq('service_id', serviceId)
-        .gte('created_at', today.toISOString());
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
         
       let maxNum = 0;
-      if (!error && todayTickets) {
-        todayTickets.forEach(t => {
-          if (t.code && t.code.startsWith(service.prefix)) {
-            const numPart = parseInt(t.code.replace(service.prefix, ''), 10);
-            if (!isNaN(numPart) && numPart > maxNum) {
-              maxNum = numPart;
-            }
+      if (!error && latestTicket && latestTicket.code) {
+        if (latestTicket.code.startsWith(service.prefix)) {
+          const numPart = parseInt(latestTicket.code.replace(service.prefix, ''), 10);
+          if (!isNaN(numPart) && numPart > maxNum) {
+            maxNum = numPart;
           }
-        });
+        }
       }
       const localSeq = config.sequences[serviceId] || 0;
-      currentSeq = Math.max(maxNum + 1, localSeq + 1);
+      currentSeq = Math.max(maxNum, localSeq) + 1;
     } catch (err) {
       console.error('Error during sequence calculation:', err);
       currentSeq = (config.sequences[serviceId] || 0) + 1;
@@ -260,22 +261,36 @@ export const useGesfilStore = () => {
       if (error) console.error("Failed to persist nextSequence", error);
     });
 
-    const finalSeq = currentSeq;
-    const code = `${service.prefix}${String(finalSeq).padStart(4, '0')}`;
+    let code = `${service.prefix}${String(currentSeq).padStart(4, '0')}`;
 
-    const { data, error } = await supabase.from('tickets').insert({
+    let insertResult = await supabase.from('tickets').insert({
       code,
       service_id: serviceId,
       status: TicketStatus.WAITING,
       priority
     }).select().single();
 
-    if (error) {
-      console.error('Error adding ticket:', error);
+    // Concurrency / collision fallback retry with incremented sequence
+    if (insertResult.error) {
+      console.warn('Collision detected or error inserting ticket, retrying with next sequence:', insertResult.error);
+      currentSeq++;
+      config.sequences[serviceId] = currentSeq;
+      code = `${service.prefix}${String(currentSeq).padStart(4, '0')}`;
+      insertResult = await supabase.from('tickets').insert({
+        code,
+        service_id: serviceId,
+        status: TicketStatus.WAITING,
+        priority
+      }).select().single();
+      supabase.from('system_config').upsert({ key: 'nextSequence', value: config });
+    }
+
+    if (insertResult.error) {
+      console.error('Error adding ticket:', insertResult.error);
       return null;
     }
 
-    return mapTicketFromDb(data);
+    return mapTicketFromDb(insertResult.data);
   }, [state.services, state.nextSequence]);
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
@@ -466,31 +481,32 @@ export const useGesfilStore = () => {
 
   const resetSystem = useCallback(async () => {
     try {
-      // Delete all tickets instead of just cancelling them
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      const todayIso = todayDate.toISOString();
+      const todayStr = todayIso.split('T')[0];
+
+      // Delete ONLY today's tickets, preserving historical records and avoiding WAL saturation
       const { error: deleteError } = await supabase
         .from('tickets')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Deletes all rows
+        .gte('created_at', todayIso);
         
       if (deleteError) {
         console.error('Delete error:', deleteError);
         throw deleteError;
       }
       
-      // Also reset local state immediately to avoid waiting for realtime
-      const today = new Date().toISOString().split('T')[0];
+      // Also reset today's tickets and sequence in local state
       setState(prev => ({
         ...prev,
-        tickets: [],
-        nextSequence: { lastResetDate: today, sequences: {} }
+        tickets: prev.tickets.filter(t => t.createdAt < todayDate.getTime()),
+        nextSequence: { lastResetDate: todayStr, sequences: {} }
       }));
       
-      await supabase.from('system_config').upsert({ key: 'nextSequence', value: { lastResetDate: today, sequences: {} } });
-      
-      alert('Sistema purgado correctamente. Los turnos han sido reiniciados.');
+      await supabase.from('system_config').upsert({ key: 'nextSequence', value: { lastResetDate: todayStr, sequences: {} } });
     } catch (error) {
       console.error('Error during system purge:', error);
-      alert('Error al purgar el sistema.');
     }
   }, []);
 
