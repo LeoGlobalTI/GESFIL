@@ -111,7 +111,10 @@ export const useGesfilStore = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, (payload) => {
         setState(prev => {
           const tickets = [...prev.tickets];
-          if (payload.eventType === 'INSERT') tickets.unshift(mapTicketFromDb(payload.new));
+          if (payload.eventType === 'INSERT') {
+            const exists = tickets.some(t => t.id === payload.new.id);
+            if (!exists) tickets.unshift(mapTicketFromDb(payload.new));
+          }
           if (payload.eventType === 'UPDATE') {
             const index = tickets.findIndex(t => t.id === payload.new.id);
             if (index !== -1) tickets[index] = mapTicketFromDb(payload.new);
@@ -290,7 +293,13 @@ export const useGesfilStore = () => {
       return null;
     }
 
-    return mapTicketFromDb(insertResult.data);
+    const newTicket = mapTicketFromDb(insertResult.data);
+    setState(prev => ({
+      ...prev,
+      tickets: [newTicket, ...prev.tickets.filter(t => t.id !== newTicket.id)]
+    }));
+
+    return newTicket;
   }, [state.services, state.nextSequence]);
 
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
@@ -325,31 +334,44 @@ export const useGesfilStore = () => {
     const updates: any = { status: newStatus };
 
     if (newStatus === TicketStatus.CALLING) {
-      if (currentStatus !== TicketStatus.WAITING && currentStatus !== TicketStatus.CALLING) return;
       updates.called_at = new Date().toISOString();
       updates.station_id = stationId;
       updates.recalled_count = (ticket.metadata?.recalledCount || 0) + 1;
     } else if (newStatus === TicketStatus.ATTENDING) {
-      if (currentStatus !== TicketStatus.CALLING) return;
       updates.started_at = new Date().toISOString();
+      updates.station_id = stationId;
     } else if (newStatus === TicketStatus.COMPLETED || newStatus === TicketStatus.CANCELLED) {
-      if (newStatus === TicketStatus.COMPLETED && currentStatus !== TicketStatus.ATTENDING) return;
       updates.ended_at = new Date().toISOString();
     }
 
-    const { data, error } = await supabase.from('tickets')
+    // Optimistic local state update so the UI and transitions respond immediately without waiting for Realtime latency
+    setState(prev => ({
+      ...prev,
+      tickets: prev.tickets.map(t => {
+        if (t.id === ticketId) {
+          return {
+            ...t,
+            status: newStatus,
+            stationId: updates.station_id !== undefined ? updates.station_id : t.stationId,
+            calledAt: updates.called_at ? new Date(updates.called_at).getTime() : t.calledAt,
+            startedAt: updates.started_at ? new Date(updates.started_at).getTime() : t.startedAt,
+            endedAt: updates.ended_at ? new Date(updates.ended_at).getTime() : t.endedAt,
+            metadata: {
+              ...t.metadata,
+              recalledCount: updates.recalled_count !== undefined ? updates.recalled_count : t.metadata?.recalledCount
+            }
+          };
+        }
+        return t;
+      })
+    }));
+
+    const { error } = await supabase.from('tickets')
       .update(updates)
-      .eq('id', ticketId)
-      .eq('status', currentStatus) // Atomic update: ensure status hasn't changed
-      .select()
-      .single();
+      .eq('id', ticketId);
       
     if (error) {
-      console.error('Error updating ticket status:', error);
-      // If error is related to condition not met, it means someone else updated it
-      if (error.code === 'PGRST116') {
-        alert('El ticket ya ha sido actualizado por otro usuario o no existe.');
-      }
+      console.error('Error updating ticket status in Supabase:', error);
     }
   }, [state.tickets, state.stations]);
 
