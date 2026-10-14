@@ -106,7 +106,7 @@ const AdminPanel: React.FC<{
         onClose={() => setShowResetModal(false)}
         onConfirm={reset}
         title="Purgar Sistema"
-        message="¿Confirmar purga diaria? Esta acción eliminará únicamente los tickets del día de hoy y reiniciará los correlativos a 0001, manteniendo el historial de días anteriores."
+        message="¿Confirmar purga diaria? Esta acción eliminará todos los tickets y reiniciará los turnos a 0001."
       />
       <ConfirmationModal 
         isOpen={showSeedModal}
@@ -345,7 +345,7 @@ const StaffController: React.FC<{
   return (
     <StaffView 
       station={activeStation || null} 
-      allStations={stations.filter(s => s.active)}
+      allStations={isAdmin ? stations.filter(s => s.active) : stations.filter(s => s.id === user.assignedStationId && s.active)}
       tickets={tickets} 
       services={services} 
       userRole={user.role}
@@ -389,7 +389,7 @@ const App: React.FC = () => {
   } = useGesfilStore();
 
   if (!state.currentUser) {
-    return <LoginViewComponent onLogin={login} />;
+    return <LoginViewComponent onLogin={login} onSeed={seedDatabase} isInitialized={state.users.length > 0} />;
   }
 
   const role = state.currentUser.role;

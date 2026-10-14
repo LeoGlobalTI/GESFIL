@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
+import ConfirmationModal from './ConfirmationModal';
 import { initAudio } from '@/lib/audio';
 import { CORPORATE_INFO } from '@/constants';
 
 interface LoginViewProps {
   onLogin: (username: string, password?: string) => Promise<boolean>;
+  onSeed: () => Promise<void>;
+  isInitialized: boolean;
 }
 
-const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin }) => {
+const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin, onSeed, isInitialized }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [showSeedModal, setShowSeedModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +43,26 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin }) => {
     }
   };
 
+  const handleSeed = async () => {
+    setSeeding(true);
+    await onSeed();
+    setSeeding(false);
+    setShowSeedModal(false);
+  };
+
+  const seedMessage = isInitialized 
+    ? "¡ADVERTENCIA! La base de datos ya parece estar inicializada. Ejecutar esta acción sincronizará los datos por defecto y podría sobrescribir configuraciones manuales. ¿Estás seguro de que deseas continuar?"
+    : "¿Deseas inicializar la base de datos con los datos por defecto (incluyendo el usuario superadmin)?";
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#f8fafc]">
+      <ConfirmationModal
+        isOpen={showSeedModal}
+        onClose={() => setShowSeedModal(false)}
+        onConfirm={handleSeed}
+        title="Inicializar Base de Datos"
+        message={seedMessage}
+      />
       <div className="max-w-[440px] w-full animate-fade-in">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
@@ -94,9 +117,23 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin }) => {
             {loading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
           </button>
 
-          <div className="pt-4 flex items-center justify-between text-xs text-slate-400 font-bold border-t border-slate-100">
-            <span className="text-indigo-600 font-black">{CORPORATE_INFO.version}</span>
-            <span className="opacity-60">{CORPORATE_INFO.support}</span>
+          <div className="pt-4 flex flex-col gap-4 text-xs text-slate-400 font-bold border-t border-slate-100">
+            <div className="flex items-center justify-between">
+              <span className="text-indigo-600 font-black">{CORPORATE_INFO.version}</span>
+              <span className="opacity-60">{CORPORATE_INFO.support}</span>
+            </div>
+            <button 
+              type="button"
+              onClick={() => setShowSeedModal(true)}
+              disabled={seeding}
+              className={`text-center w-full py-2 rounded-xl border transition-colors ${
+                isInitialized 
+                  ? 'text-amber-600 hover:text-amber-800 bg-amber-50 border-amber-100' 
+                  : 'text-indigo-600 hover:text-indigo-800 bg-indigo-50 border-indigo-100'
+              }`}
+            >
+              {seeding ? 'Inicializando...' : isInitialized ? 'Re-sincronizar Base de Datos' : '¿Primera vez? Inicializar Base de Datos'}
+            </button>
           </div>
         </form>
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Ticket, Station, TicketStatus, Service } from '@/types';
-import { playNotificationSound, initAudio } from '@/lib/audio';
+import { playNotificationSound } from '@/lib/audio';
 import { CORPORATE_INFO } from '@/constants';
 
 /**
@@ -24,24 +24,6 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [showDock, setShowDock] = useState(false);
   const [clickCount, setClickCount] = useState(0);
-
-  // Auto-desbloqueo de audio al primer clic o toque en cualquier parte de la pantalla
-  useEffect(() => {
-    const handleFirstInteraction = () => {
-      initAudio();
-      setAudioUnlocked(true);
-    };
-
-    window.addEventListener('click', handleFirstInteraction, { once: true });
-    window.addEventListener('touchstart', handleFirstInteraction, { once: true });
-    window.addEventListener('keydown', handleFirstInteraction, { once: true });
-
-    return () => {
-      window.removeEventListener('click', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-    };
-  }, []);
 
   // Efecto para activar modo administrador oculto al pulsar 5 veces
   useEffect(() => {
