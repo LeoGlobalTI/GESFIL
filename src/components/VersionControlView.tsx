@@ -18,10 +18,22 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'v4.3.1 Enterprise',
+    version: 'v4.3.2 Enterprise',
     tag: 'Producción',
     date: '15 de Octubre de 2026',
     isLatest: true,
+    summary: 'Mejoras en la experiencia de usuario en modales, optimización de diseño y ordenamiento alfabético en listados.',
+    highlights: [
+      'Ampliación del modal de "Nuevo Módulo" para mejorar la disposición de controles de horario.',
+      'Ordenamiento alfabético automático de módulos en las pantallas de configuración y Staff.',
+      'Actualización de la suite a la versión v4.3.2 con mejoras en la estabilidad y experiencia de usuario.',
+    ],
+  },
+  {
+    version: 'v4.3.1 Enterprise',
+    tag: 'Producción',
+    date: '15 de Octubre de 2026',
+    isLatest: false,
     summary: 'Sincronización bidireccional inmediata de módulos y operadores en caliente, resolución de hallazgos operativos y optimización de visualización en Display.',
     highlights: [
       'Sincronización bidireccional instantánea entre Operadores (Staff) y Nodos de Atención (Módulos) evitando colisiones de asignación.',
