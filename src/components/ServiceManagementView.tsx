@@ -71,42 +71,35 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-8">
           {services.map(service => {
             return (
-              <div key={service.id} className="group relative bg-white rounded-[3rem] border border-slate-100 overflow-hidden hover:shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] transition-all duration-700 border-t-0">
-                <div className="h-4 w-full" style={{ backgroundColor: service.color }}></div>
-                <div className="p-10">
-                  <div className="flex justify-between items-start mb-8">
-                      <div className="w-18 h-18 rounded-[1.75rem] flex items-center justify-center font-black text-white text-3xl shadow-2xl ring-4 ring-white" style={{ backgroundColor: service.color }}>
-                        {service.prefix}
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                          service.active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400'
-                        }`}>
-                          {service.active ? 'Routing Activo' : 'Offline'}
-                        </span>
-                      </div>
-                  </div>
+              <div key={service.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-6 hover:border-indigo-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -translate-y-12 translate-x-12 opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
                  
-                 <h4 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">{service.name}</h4>
-                 
-                 <div className="flex items-center gap-4 mb-6">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Configuración por Módulo</span>
+                 <div className="flex items-center gap-6 relative z-10">
+                    <div className="w-16 h-16 rounded-[1.75rem] flex items-center justify-center text-2xl font-black text-white shadow-2xl ring-4 ring-white" style={{ backgroundColor: service.color }}>
+                      {service.prefix}
+                    </div>
+                    <div className="flex-grow min-w-0">
+                       <h4 className="text-lg font-black text-slate-900 truncate pr-2 mb-1">{service.name}</h4>
+                       <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+                         service.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'
+                       }`}>
+                         {service.active ? 'Routing Activo' : 'Offline'}
+                       </span>
+                    </div>
                  </div>
 
-                 <p className="text-xs text-slate-400 font-medium leading-relaxed mb-10 line-clamp-2 h-10 italic">
+                 <p className="text-xs text-slate-400 font-medium leading-relaxed mt-4 h-10 line-clamp-2">
                    {service.description || 'Sin descripción técnica disponible para esta unidad.'}
                  </p>
-                 
-                 <div className="flex items-center justify-between pt-8 border-t border-slate-50">
-                    <button onClick={() => handleOpenModal(service)} className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:text-indigo-900 flex items-center gap-2">
-                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                       Parámetros
+
+                 <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-end relative z-10 gap-2">
+                    <button onClick={() => handleOpenModal(service)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                     </button>
-                    <button onClick={() => { setServiceToDelete(service); setShowDeleteModal(true); }} className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Eliminar
+                    <button onClick={() => { setServiceToDelete(service); setShowDeleteModal(true); }} className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     </button>
                  </div>
-                </div>
               </div>
             );
           })}

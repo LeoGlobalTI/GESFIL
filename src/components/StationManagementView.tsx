@@ -119,69 +119,52 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
       </div>
 
       <div className="p-10 flex-grow overflow-y-auto custom-scrollbar">
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900 text-white text-[10px] uppercase tracking-[0.3em] font-black">
-              <tr>
-                <th className="px-8 py-6">Módulo</th>
-                <th className="px-8 py-6">Responsable</th>
-                <th className="px-8 py-6">Routing</th>
-                <th className="px-8 py-6">Status</th>
-                <th className="px-8 py-6 text-right">Control</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
               {[...stations].sort((a, b) => a.name.localeCompare(b.name)).map(station => (
-                <tr key={station.id} className="hover:bg-slate-50/50 transition-all group">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-8 bg-indigo-500 rounded-full"></div>
-                      <span className="font-black text-slate-900 text-lg tracking-tight">{station.name}</span>
+                <div key={station.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-6 hover:border-indigo-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -translate-y-12 translate-x-12 opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                 
+                 <div className="flex items-center gap-6 relative z-10">
+                    <div className="w-16 h-16 rounded-[1.75rem] flex items-center justify-center text-xl font-black text-white shadow-2xl bg-indigo-600 ring-4 ring-white">
+                      {station.name[0]}
                     </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="text-sm font-bold text-slate-600">{station.operatorName}</span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex flex-wrap gap-1.5 max-w-[200px]">
-                      {station.serviceIds.map(sid => {
-                        const s = services.find(srv => srv.id === sid);
-                        if (!s) return null;
-                        return (
-                          <span key={sid} className="px-2 py-1 rounded-lg text-[8px] font-black text-white shadow-sm" style={{ backgroundColor: s.color }}>
-                            {s.prefix}
-                          </span>
-                        );
-                      })}
+                    <div className="flex-grow min-w-0">
+                       <h4 className="text-lg font-black text-slate-900 truncate pr-2 mb-1">{station.name}</h4>
+                       <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest ${
+                         station.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'
+                       }`}>
+                         {station.active ? 'Online' : 'Offline'}
+                       </span>
                     </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${station.active ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${
-                        station.active ? 'text-emerald-600' : 'text-slate-400'
-                      }`}>
-                        {station.active ? 'Online' : 'Offline'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => handleOpenModal(station)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                      </button>
-                      <button 
-                        onClick={() => { setStationToDelete(station); setShowDeleteModal(true); }}
-                        className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                 </div>
+
+                 <div className="mt-4">
+                   <p className="text-xs text-slate-400 font-medium leading-relaxed mb-3">
+                     Responsable: {station.operatorName || 'Sin asignar'}
+                   </p>
+                   <div className="flex flex-wrap gap-1.5">
+                     {station.serviceIds.map(sid => {
+                       const s = services.find(serv => serv.id === sid);
+                       if (!s) return null;
+                       return (
+                         <span key={s.id} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black text-white shadow-sm" style={{ backgroundColor: s.color }} title={s.name}>
+                           {s.prefix}
+                         </span>
+                       );
+                     })}
+                   </div>
+                 </div>
+
+                 <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-end relative z-10 gap-2">
+                    <button onClick={() => handleOpenModal(station)} className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Ajustes">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    </button>
+                    <button onClick={() => { setStationToDelete(station); setShowDeleteModal(true); }} className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all" title="Eliminar">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </button>
+                 </div>
+              </div>
               ))}
-            </tbody>
-          </table>
         </div>
       </div>
 

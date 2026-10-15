@@ -5,9 +5,9 @@ import { Service, Station } from '@/types';
 export const CORPORATE_INFO = {
   name: 'GESFIL',
   systemName: 'GESFIL Enterprise Suite',
-  version: 'v4.3.2 Corporate Edition',
-  versionTag: 'v4.3.2 Enterprise',
-  build: '2026.10-R7',
+  version: 'v4.3.3 Corporate Edition',
+  versionTag: 'v4.3.3 Enterprise',
+  build: '2026.10-R8',
   releaseDate: '15 de Octubre de 2026',
   company: 'Global TI',
   companyFullName: 'Global TI SpA',

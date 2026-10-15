@@ -375,109 +375,57 @@ app.listen(PUERTO, '0.0.0.0', () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {printers.map(printer => (
-          <div key={printer.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-            <div className="flex items-start justify-between mb-6">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${printer.active ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
-                {printer.type === PrinterType.NETWORK || printer.type === PrinterType.BRIDGE ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m16 6-4 4-4-4"/><rect x="7" y="16" width="10" height="6" rx="2"/><path d="M7 10v4a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-4"/></svg>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => onUpdate(printer.id, { active: !printer.active })}
-                  className={`w-10 h-6 rounded-full transition-colors relative ${printer.active ? 'bg-indigo-600' : 'bg-slate-200'}`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${printer.active ? 'left-5' : 'left-1'}`} />
-                </button>
-                <button 
-                  onClick={() => { setPrinterToDelete(printer); setShowDeleteModal(true); }}
-                  className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                </button>
-              </div>
-            </div>
+      <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {printers.map(printer => (
+          <div key={printer.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 hover:border-indigo-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
+             <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -translate-y-12 translate-x-12 opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+             
+             <div className="flex items-center gap-6 relative z-10">
+                <div className={`w-20 h-20 rounded-[1.75rem] flex items-center justify-center shadow-2xl ring-4 ring-white ${printer.active ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
+                    {printer.type === PrinterType.NETWORK || printer.type === PrinterType.BRIDGE ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v8"/><path d="m16 6-4 4-4-4"/><rect x="7" y="16" width="10" height="6" rx="2"/><path d="M7 10v4a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-4"/></svg>
+                    )}
+                </div>
+                <div className="flex-grow min-w-0">
+                   <h4 className="text-xl font-black text-slate-900 truncate pr-2 mb-1.5">{printer.name}</h4>
+                   <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest ${printer.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                     {printer.active ? 'En Línea' : 'Desconectada'}
+                   </span>
+                </div>
+             </div>
 
-            <ConfirmationModal
-              isOpen={showDeleteModal}
-              onClose={() => setShowDeleteModal(false)}
-              onConfirm={() => {
-                if (printerToDelete) {
-                  onDelete(printerToDelete.id);
-                  setPrinterToDelete(null);
-                  setShowDeleteModal(false);
-                }
-              }}
-              title="Eliminar Impresora"
-              message={`¿Estás seguro de que deseas eliminar la impresora "${printerToDelete?.name}"? Esta acción no se puede deshacer.`}
-            />
-
-            <div className="space-y-1">
-              <h4 className="font-black text-slate-900">{printer.name}</h4>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+             <p className="text-xs text-slate-400 font-medium leading-relaxed mt-6 truncate">
                 {printer.type === PrinterType.NETWORK ? `IP: ${printer.address}:${printer.port}` : 
                  printer.type === PrinterType.BRIDGE ? `BRIDGE: ${printer.address || 'http://localhost:3001/imprimir'}` :
                  `USB: ${printer.address}`}
-              </p>
-            </div>
+             </p>
 
-            <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-              <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${printer.active ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
-                {printer.active ? 'En Línea' : 'Desconectada'}
-              </span>
-              <div className="flex items-center gap-3">
+             <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-1">
+                    <button 
+                      onClick={() => onUpdate(printer.id, { active: !printer.active })}
+                      className={`w-10 h-6 rounded-full transition-colors relative ${printer.active ? 'bg-indigo-600' : 'bg-slate-200'}`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${printer.active ? 'left-5' : 'left-1'}`} />
+                    </button>
+                    <button 
+                      onClick={() => handleTestPrint(printer)}
+                      className="ml-3 text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                    >
+                      Test
+                    </button>
+                </div>
                 <button 
-                  onClick={() => handleTestPrint(printer)}
-                  className="text-[9px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+                  onClick={() => { setPrinterToDelete(printer); setShowDeleteModal(true); }}
+                  className="p-3 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                 >
-                  Test
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                 </button>
-                {printer.type === PrinterType.BRIDGE && (
-                  <button 
-                    onClick={() => checkBridgeStatus(printer)}
-                    disabled={checkingBridgeId === printer.id}
-                    className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:underline disabled:opacity-50"
-                  >
-                    {checkingBridgeId === printer.id ? 'Verificando...' : 'Verificar Bridge'}
-                  </button>
-                )}
-                {printer.type === PrinterType.USB && (
-                  <>
-                    <button 
-                      onClick={discoverUSB}
-                      className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600"
-                    >
-                      Re-vincular
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        try {
-                          const nav = navigator as any;
-                          const devices = await nav.usb.getDevices();
-                          const device = devices.find((d: any) => `VID_${d.vendorId}_PID_${d.productId}` === printer.address);
-                          if (device && device.forget) {
-                            await device.forget();
-                            alert("Dispositivo desvinculado del navegador.");
-                            window.location.reload();
-                          }
-                        } catch (e) {
-                          console.error(e);
-                        }
-                      }}
-                      className="text-[9px] font-black text-rose-400 uppercase tracking-widest hover:text-rose-600"
-                    >
-                      Olvidar
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+             </div>
           </div>
-        ))}
+          ))}
         {printers.length === 0 && !isAdding && (
           <div className="col-span-full py-20 text-center space-y-4">
             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200 text-4xl">🖨️</div>

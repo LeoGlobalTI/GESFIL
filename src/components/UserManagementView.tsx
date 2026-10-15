@@ -106,7 +106,7 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
           {users.map(user => {
             const station = stations.find(s => s.id === user.assignedStationId);
             return (
-              <div key={user.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-8 hover:border-indigo-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
+              <div key={user.id} className="group relative bg-white border border-slate-100 rounded-[2.5rem] p-6 hover:border-indigo-200 hover:shadow-2xl transition-all duration-500 overflow-hidden">
                  <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -translate-y-12 translate-x-12 opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
                  
                  <div className="flex items-center gap-6 relative z-10">

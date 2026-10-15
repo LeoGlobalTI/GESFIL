@@ -131,20 +131,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
       ) : (
         <>
           {/* KPI Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-[380px] h-[220px]">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-full h-48">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Total Atenciones</p>
               <p className="text-4xl font-black text-slate-900">{stats.total}</p>
             </div>
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-[380px] h-[220px]">
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-full h-48">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">T. Promedio Espera</p>
               <p className="text-4xl font-black text-indigo-600">{stats.avgWaitTime} min</p>
             </div>
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-[380px] h-[220px]">
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-full h-48">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Atendidos</p>
               <p className="text-4xl font-black text-emerald-500">{stats.completed}</p>
             </div>
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-[380px] h-[220px]">
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm w-full h-48">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">En Cola</p>
               <p className="text-4xl font-black text-amber-500">{stats.waiting}</p>
             </div>

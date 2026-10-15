@@ -18,10 +18,22 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'v4.3.2 Enterprise',
+    version: 'v4.3.3 Enterprise',
     tag: 'Producción',
     date: '15 de Octubre de 2026',
     isLatest: true,
+    summary: 'Optimización de tarjetas en gestión de módulos, alineación de acciones y visualización de servicios asignados.',
+    highlights: [
+      'Incorporación de insignias de servicios activos y asignados en las tarjetas de módulos.',
+      'Alineación de botones de acción y ajustes hacia la derecha en la vista de módulos.',
+      'Actualización general del sistema a la versión v4.3.3 Enterprise con mejoras visuales y funcionales.',
+    ],
+  },
+  {
+    version: 'v4.3.2 Enterprise',
+    tag: 'Producción',
+    date: '15 de Octubre de 2026',
+    isLatest: false,
     summary: 'Mejoras en la experiencia de usuario en modales, optimización de diseño y ordenamiento alfabético en listados.',
     highlights: [
       'Ampliación del modal de "Nuevo Módulo" para mejorar la disposición de controles de horario.',
