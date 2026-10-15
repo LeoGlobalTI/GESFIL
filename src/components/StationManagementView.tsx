@@ -131,7 +131,7 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {stations.map(station => (
+              {[...stations].sort((a, b) => a.name.localeCompare(b.name)).map(station => (
                 <tr key={station.id} className="hover:bg-slate-50/50 transition-all group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
@@ -200,128 +200,116 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh] ring-1 ring-slate-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
+              <h4 className="text-xl font-black text-slate-900 tracking-tight">
                 {editingStation ? 'Ajustes de Nodo' : 'Desplegar Módulo'}
               </h4>
-              <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identificador de Módulo</label>
-                <input 
-                  type="text" required placeholder="Ej: Módulo 01"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                />
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operador Responsable</label>
-                  {users.length > 0 && (
-                    <span className="text-[9px] font-bold text-indigo-600">Sincronización automática</span>
-                  )}
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input 
-                    type="text" placeholder="Ej: Operador 03 (Opcional)"
-                    value={formData.operatorName}
-                    onChange={e => setFormData({...formData, operatorName: e.target.value})}
-                    className="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                  {users.filter(u => u.role === UserRole.STAFF).length > 0 && (
-                    <select
-                      value={users.find(u => u.name === formData.operatorName)?.name || ''}
-                      onChange={e => {
-                        if (e.target.value) {
-                          setFormData({ ...formData, operatorName: e.target.value });
-                        }
-                      }}
-                      className="px-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none"
-                    >
-                      <option value="">Elegir de lista...</option>
-                      {users.filter(u => u.role === UserRole.STAFF).map(u => (
-                        <option key={u.id} value={u.name}>{u.name} (@{u.username})</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mapping de Servicios</label>
-                <div className="flex flex-wrap gap-2 p-6 bg-slate-50 rounded-[2rem] border border-slate-200 shadow-inner">
-                  {services.filter(s => s.active).map(s => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggleService(s.id)}
-                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-2 shadow-sm ${
-                        formData.serviceIds.includes(s.id)
-                        ? "bg-slate-900 border-slate-900 text-white"
-                        : "bg-white border-white text-slate-400 hover:border-indigo-100"
-                      }`}
-                    >
-                      {s.name}
-                    </button>
-                  ))}
-                </div>
-
-                {formData.serviceIds.length > 0 && (
-                  <div className="space-y-3 mt-4">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Horarios por Servicio</label>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                      {formData.serviceIds.map(sid => {
-                        const s = services.find(srv => srv.id === sid);
-                        if (!s) return null;
+            <div className="overflow-y-auto custom-scrollbar flex-grow">
+                <form id="station-form" onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identificador de Módulo</label>
+                      <input 
+                        type="text" required placeholder="Ej: Módulo 01"
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operador Responsable</label>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <input 
+                          type="text" placeholder="Ej: Operador 03 (Opcional)"
+                          value={formData.operatorName}
+                          onChange={e => setFormData({...formData, operatorName: e.target.value})}
+                          className="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                        />
+                        {users.filter(u => u.role === UserRole.STAFF).length > 0 && (
+                          <select
+                            value={users.find(u => u.name === formData.operatorName)?.name || ''}
+                            onChange={e => {
+                              if (e.target.value) {
+                                setFormData({ ...formData, operatorName: e.target.value });
+                              }
+                            }}
+                            className="w-full px-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none"
+                          >
+                            <option value="">Elegir de lista...</option>
+                            {users.filter(u => u.role === UserRole.STAFF).map(u => (
+                              <option key={u.id} value={u.name}>{u.name} (@{u.username})</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Servicios y Horarios</label>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {services.filter(s => s.active).map(s => {
+                        const isSelected = formData.serviceIds.includes(s.id);
                         return (
-                          <div key={sid} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }}></div>
-                              <span className="text-[10px] font-black text-slate-700 uppercase">{s.name}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <input 
-                                type="time"
-                                value={formData.serviceConfigs[sid]?.startTime || ''}
-                                onChange={e => updateServiceConfig(sid, 'startTime', e.target.value)}
-                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              />
-                              <span className="text-[10px] font-black text-slate-300">-</span>
-                              <input 
-                                type="time"
-                                value={formData.serviceConfigs[sid]?.endTime || ''}
-                                onChange={e => updateServiceConfig(sid, 'endTime', e.target.value)}
-                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              />
+                          <div key={s.id} className={`flex flex-col p-4 bg-slate-50 rounded-2xl border ${isSelected ? 'border-indigo-200' : 'border-slate-100'}`}>
+                            <div className="flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => toggleService(s.id)}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border-2 shadow-sm ${
+                                  isSelected
+                                  ? "bg-slate-900 border-slate-900 text-white"
+                                  : "bg-white border-slate-200 text-slate-400 hover:border-indigo-100"
+                                }`}
+                              >
+                                {s.name}
+                              </button>
+                              {isSelected && (
+                                <div className="flex items-center gap-2">
+                                  <input 
+                                    type="time"
+                                    value={formData.serviceConfigs[s.id]?.startTime || ''}
+                                    onChange={e => updateServiceConfig(s.id, 'startTime', e.target.value)}
+                                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                  />
+                                  <span className="text-[10px] font-black text-slate-300">-</span>
+                                  <input 
+                                    type="time"
+                                    value={formData.serviceConfigs[s.id]?.endTime || ''}
+                                    onChange={e => updateServiceConfig(s.id, 'endTime', e.target.value)}
+                                    className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div className="pt-6 flex gap-4">
+                </form>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-shrink-0">
                 <button 
                   type="button" onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-5 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-white text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all border border-slate-200"
                 >
                   Cancelar
                 </button>
                 <button 
-                  type="submit"
-                  className="flex-1 py-5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+                  type="submit" form="station-form"
+                  className="flex-1 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
                 >
-                  Confirmar Nodo
+                  Confirmar
                 </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

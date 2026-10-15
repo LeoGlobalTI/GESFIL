@@ -97,7 +97,7 @@ const StaffView: React.FC<StaffViewProps> = ({
             </div>
             
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
-              {allStations.map(s => {
+              {[...allStations].sort((a, b) => a.name.localeCompare(b.name)).map(s => {
                 const isActive = station && s.id === station.id;
                 const stationWaitingCount = tickets.filter(t => {
                   if (t.status !== TicketStatus.WAITING || !s.serviceIds.includes(t.serviceId)) return false;

@@ -128,73 +128,74 @@ const ServiceManagementView: React.FC<ServiceManagementViewProps> = ({ services,
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh] ring-1 ring-slate-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
+              <h4 className="text-xl font-black text-slate-900 tracking-tight">
                 {editingService ? 'Ajustes de Servicio' : 'Nueva Unidad'}
               </h4>
-              <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identificador Comercial</label>
-                <input 
-                  type="text" required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Routing Code</label>
+            <div className="overflow-y-auto custom-scrollbar flex-grow">
+                <form id="service-form" onSubmit={handleSubmit} className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identificador Comercial</label>
                     <input 
-                    type="text" required maxLength={4}
-                    value={formData.prefix}
-                    onChange={e => setFormData({...formData, prefix: e.target.value.toUpperCase()})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 text-center uppercase focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identity Color</label>
-                  <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3">
-                    <input 
-                      type="color" required
-                      value={formData.color}
-                      onChange={e => setFormData({...formData, color: e.target.value})}
-                      className="w-10 h-10 bg-transparent cursor-pointer rounded-lg overflow-hidden border-none"
+                      type="text" required
+                      value={formData.name}
+                      onChange={e => setFormData({...formData, name: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
                     />
-                    <span className="font-mono text-[11px] font-black text-slate-500 uppercase">{formData.color}</span>
                   </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Descripción de Operación</label>
-                <textarea 
-                  value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-600 resize-none h-24 focus:ring-2 focus:ring-indigo-600/20"
-                  placeholder="Defina el alcance de esta unidad de servicio..."
-                />
-              </div>
-
-              <div className="pt-6 flex gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Routing Code</label>
+                        <input 
+                        type="text" required maxLength={4}
+                        value={formData.prefix}
+                        onChange={e => setFormData({...formData, prefix: e.target.value.toUpperCase()})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-slate-900 text-center uppercase focus:ring-2 focus:ring-indigo-600/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Identity Color</label>
+                      <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3">
+                        <input 
+                          type="color" required
+                          value={formData.color}
+                          onChange={e => setFormData({...formData, color: e.target.value})}
+                          className="w-10 h-10 bg-transparent cursor-pointer rounded-lg overflow-hidden border-none"
+                        />
+                        <span className="font-mono text-[11px] font-black text-slate-500 uppercase">{formData.color}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Descripción de Operación</label>
+                    <textarea 
+                      value={formData.description}
+                      onChange={e => setFormData({...formData, description: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-600 resize-none h-24 focus:ring-2 focus:ring-indigo-600/20"
+                      placeholder="Defina el alcance de esta unidad de servicio..."
+                    />
+                  </div>
+                </form>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-shrink-0">
                 <button 
                   type="button" onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-5 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-white text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all border border-slate-200"
                 >
-                  Cerrar
+                  Cancelar
                 </button>
                 <button 
-                  type="submit"
-                  className="flex-1 py-5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+                  type="submit" form="service-form"
+                  className="flex-1 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
                 >
                   Confirmar
                 </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

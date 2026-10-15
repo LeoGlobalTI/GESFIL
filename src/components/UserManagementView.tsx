@@ -175,102 +175,103 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h4 className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh] ring-1 ring-slate-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 flex-shrink-0">
+              <h4 className="text-xl font-black text-slate-900 tracking-tight">
                 {editingUser ? 'Ajustes de Cuenta' : 'Registrar Operador'}
               </h4>
-              <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 rounded-full hover:bg-white transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nombre Completo</label>
-                <input 
-                  type="text" required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center px-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Usuario</label>
-                    {isCheckingUsername && <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>}
+            <div className="overflow-y-auto custom-scrollbar flex-grow">
+                <form id="user-form" onSubmit={handleSubmit} className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nombre Completo</label>
+                    <input 
+                      type="text" required
+                      value={formData.name}
+                      onChange={e => setFormData({...formData, name: e.target.value})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                    />
                   </div>
-                  <input 
-                    type="text" required
-                    value={formData.username}
-                    onChange={e => setFormData({...formData, username: e.target.value})}
-                    className={`w-full px-6 py-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 transition-all ${usernameError ? 'border-rose-500 focus:ring-rose-600/20' : 'border-slate-200 focus:ring-indigo-600/20'}`}
-                  />
-                  {usernameError && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest px-1">{usernameError}</p>}
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Clave</label>
-                  <input 
-                    type="password" required
-                    value={formData.password}
-                    onChange={e => setFormData({...formData, password: e.target.value})}
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nivel de Acceso</label>
-                <select 
-                  value={formData.role}
-                  onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 appearance-none"
-                >
-                  <option value={UserRole.STAFF}>STAFF (Atención)</option>
-                  <option value={UserRole.ADMIN}>ADMIN (Gestión)</option>
-                  {currentUserRole === UserRole.SUPERADMIN && <option value={UserRole.SUPERADMIN}>SUPERADMIN (Master)</option>}
-                  <option value={UserRole.TOTEM}>TOTEM (Emisor)</option>
-                  <option value={UserRole.DISPLAY}>DISPLAY (Monitor)</option>
-                </select>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ID Usuario</label>
+                        {isCheckingUsername && <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>}
+                      </div>
+                      <input 
+                        type="text" required
+                        value={formData.username}
+                        onChange={e => setFormData({...formData, username: e.target.value})}
+                        className={`w-full px-6 py-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 transition-all ${usernameError ? 'border-rose-500 focus:ring-rose-600/20' : 'border-slate-200 focus:ring-indigo-600/20'}`}
+                      />
+                      {usernameError && <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest px-1">{usernameError}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Clave</label>
+                      <input 
+                        type="password" required
+                        value={formData.password}
+                        onChange={e => setFormData({...formData, password: e.target.value})}
+                        className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Nivel de Acceso</label>
+                    <select 
+                      value={formData.role}
+                      onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                      className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 appearance-none"
+                    >
+                      <option value={UserRole.STAFF}>STAFF (Atención)</option>
+                      <option value={UserRole.ADMIN}>ADMIN (Gestión)</option>
+                      {currentUserRole === UserRole.SUPERADMIN && <option value={UserRole.SUPERADMIN}>SUPERADMIN (Master)</option>}
+                      <option value={UserRole.TOTEM}>TOTEM (Emisor)</option>
+                      <option value={UserRole.DISPLAY}>DISPLAY (Monitor)</option>
+                    </select>
+                  </div>
 
-              {formData.role === UserRole.STAFF && (
-                <div className="p-8 bg-indigo-50/50 rounded-[2.5rem] border border-indigo-100">
-                  <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 text-center">Vinculación de Terminal</label>
-                  <select 
-                    value={formData.assignedStationId}
-                    onChange={e => setFormData({...formData, assignedStationId: e.target.value})}
-                    className="w-full px-5 py-3 bg-white border border-indigo-100 rounded-xl outline-none font-black text-indigo-600 text-sm shadow-sm"
-                  >
-                    <option value="">Sin módulo asignado...</option>
-                    {stations.filter(s => s.active).map(s => {
-                      // Buscar si otro operador ya tiene este módulo asignado
-                      const currentOperator = users.find(u => u.role === UserRole.STAFF && u.assignedStationId === s.id && u.id !== editingUser?.id);
-                      return (
-                        <option key={s.id} value={s.id}>
-                          {s.name} {currentOperator ? `(Ocupado por: ${currentOperator.name})` : '(Disponible)'}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
-
-              <div className="pt-6 flex gap-4">
+                  {formData.role === UserRole.STAFF && (
+                    <div className="p-6 bg-indigo-50/50 rounded-[2rem] border border-indigo-100">
+                      <label className="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 text-center">Vinculación de Terminal</label>
+                      <select 
+                        value={formData.assignedStationId}
+                        onChange={e => setFormData({...formData, assignedStationId: e.target.value})}
+                        className="w-full px-5 py-3 bg-white border border-indigo-100 rounded-xl outline-none font-black text-indigo-600 text-sm shadow-sm"
+                      >
+                        <option value="">Sin módulo asignado...</option>
+                        {stations.filter(s => s.active).map(s => {
+                          // Buscar si otro operador ya tiene este módulo asignado
+                          const currentOperator = users.find(u => u.role === UserRole.STAFF && u.assignedStationId === s.id && u.id !== editingUser?.id);
+                          return (
+                            <option key={s.id} value={s.id}>
+                              {s.name} {currentOperator ? `(Ocupado por: ${currentOperator.name})` : '(Disponible)'}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
+                </form>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex gap-3 flex-shrink-0">
                 <button 
                   type="button" onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-5 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all"
+                  className="flex-1 py-4 bg-white text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-100 transition-all border border-slate-200"
                 >
                   Cancelar
                 </button>
                 <button 
-                  type="submit"
+                  type="submit" form="user-form"
                   disabled={!!usernameError || isCheckingUsername}
-                  className={`flex-1 py-5 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 ${usernameError || isCheckingUsername ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`flex-1 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 ${usernameError || isCheckingUsername ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  Guardar Perfil
+                  Confirmar
                 </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
