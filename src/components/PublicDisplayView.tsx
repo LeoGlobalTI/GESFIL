@@ -147,6 +147,17 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
       .slice(0, 10),
   [tickets]);
 
+  // Obtiene el identificador numérico o etiqueta limpia del módulo (ej: "MOD 03", "MOD03", "Módulo 3" -> "03")
+  const getStationCode = (stationName?: string) => {
+    if (!stationName) return '00';
+    const numMatch = stationName.match(/\d+/);
+    if (numMatch) {
+      return numMatch[0].padStart(2, '0');
+    }
+    const parts = stationName.trim().split(' ');
+    return parts[parts.length - 1] || '00';
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] text-white p-6 md:p-12 font-sans flex flex-col overflow-hidden selection:bg-indigo-500">
       {!audioUnlocked && (
@@ -240,7 +251,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                     <span className={`text-[9px] md:text-[11px] font-black uppercase tracking-[0.4em] mb-2 ${isCalling ? 'text-white/70' : 'text-slate-500'}`}>Módulo</span>
                     <div className="flex items-baseline justify-center sm:justify-end gap-3">
                       <span className={`text-6xl md:text-8xl lg:text-[100px] font-black leading-none tracking-tighter ${isCalling ? 'animate-pulse-fast' : ''}`}>
-                        {station?.name.split(' ').pop() || "00"}
+                        {getStationCode(station?.name)}
                       </span>
                     </div>
                   </div>

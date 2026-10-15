@@ -206,7 +206,7 @@ const AdminPanel: React.FC<{
           <div className="flex-grow overflow-y-auto custom-scrollbar">
             {activeTab === 'users' && <UserManagementView users={users} onAdd={onAddUser} onUpdate={onUpdateUser} onDelete={onDeleteUser} stations={stations} currentUserRole={userRole} />}
             {activeTab === 'services' && <ServiceManagementView services={services} onAdd={onAddService} onUpdate={onUpdateService} onDelete={onDeleteService} />}
-            {activeTab === 'stations' && <StationManagementView stations={stations} services={services} onAdd={onAddStation} onUpdate={onUpdateStation} onDelete={onDeleteStation} />}
+            {activeTab === 'stations' && <StationManagementView stations={stations} services={services} users={users} onAdd={onAddStation} onUpdate={onUpdateStation} onDelete={onDeleteStation} />}
             {activeTab === 'printers' && userRole === UserRole.SUPERADMIN && <PrinterManagementView printers={printers} onAdd={onAddPrinter} onUpdate={onUpdatePrinter} onDelete={onDeletePrinter} />}
             {activeTab === 'settings' && userRole === UserRole.SUPERADMIN && (
               <div className="p-10">
@@ -316,11 +316,19 @@ const StaffController: React.FC<{
     
   const [activeStationId, setActiveStationId] = useState<string | null>(() => defaultStationId);
 
+  // Sincronizar de inmediato la estación activa para operadores y auto-seleccionar para administradores
   useEffect(() => {
-    if (user.assignedStationId && activeStationId !== user.assignedStationId && !isAdmin) {
-      setActiveStationId(user.assignedStationId);
+    if (!isAdmin) {
+      // Para operadores: siempre vincular a su estación asignada
+      setActiveStationId(user.assignedStationId || null);
+    } else if (isAdmin && (!activeStationId || !stations.some(s => s.id === activeStationId && s.active))) {
+      // Para administradores: si aún no hay módulo activo seleccionado, auto-seleccionar el primero activo
+      const firstActive = stations.find(s => s.active);
+      if (firstActive) {
+        setActiveStationId(firstActive.id);
+      }
     }
-  }, [user.assignedStationId, isAdmin]);
+  }, [user.assignedStationId, isAdmin, activeStationId, stations]);
 
   const activeStation = useMemo(() => 
     stations.find(s => s.id === activeStationId),
@@ -332,12 +340,16 @@ const StaffController: React.FC<{
     }
   }, [isAdmin]);
 
-  if (!activeStationId && !isAdmin) {
+  if (!isAdmin && (!activeStationId || !activeStation || !activeStation.active)) {
     return (
       <div className="h-[500px] flex flex-col items-center justify-center text-slate-400 max-w-lg text-center mx-auto space-y-6 animate-fade-in">
         <div className="w-24 h-24 bg-slate-100 rounded-[2.5rem] flex items-center justify-center text-5xl grayscale opacity-50">🔒</div>
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Acceso Restringido</h2>
-        <p className="text-slate-500 font-medium leading-relaxed italic">Su perfil no cuenta con una estación de trabajo activa vinculada. Contacte con la administración de GESFIL para su asignación.</p>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">Módulo No Disponible</h2>
+        <p className="text-slate-500 font-medium leading-relaxed italic">
+          {!activeStationId 
+            ? 'Su perfil no cuenta con una estación de trabajo vinculada. Contacte con la administración de GESFIL para su asignación.'
+            : 'El módulo asignado se encuentra temporalmente inactivo. Contacte a la administración para su activación.'}
+        </p>
       </div>
     );
   }
@@ -409,7 +421,14 @@ const App: React.FC = () => {
 
           <Route path="/totem" element={
             [UserRole.TOTEM, UserRole.ADMIN, UserRole.SUPERADMIN].includes(role) 
-              ? <TotemView services={state.services.filter(s => isServiceActive(s))} nextSequence={state.nextSequence} onIssueTicket={addTicket} printers={state.printers} /> 
+              ? <TotemView 
+                  services={state.services} 
+                  stations={state.stations} 
+                  nextSequence={state.nextSequence} 
+                  onIssueTicket={addTicket} 
+                  printers={state.printers} 
+                  isServiceActive={isServiceActive} 
+                /> 
               : <Navigate to="/" />
           } />
           

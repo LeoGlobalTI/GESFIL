@@ -1,5 +1,5 @@
 {
   "name": "GESFIL - Gestor de Fila",
-  "description": "An advanced, high-performance system for managing service queues (v4.2.0 Enterprise), featuring patient totem, operator modules, public display, and a corporate business intelligence dashboard.",
+  "description": "An advanced, high-performance system for managing service queues (v4.3.1 Enterprise), featuring patient totem, operator modules, public display, and a corporate business intelligence dashboard.",
   "requestFramePermissions": ["usb"]
 }

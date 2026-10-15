@@ -16,12 +16,12 @@ const LoginViewComponent: React.FC<LoginViewProps> = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true);
     
-    // Initialize audio context on user interaction (login click)
-    // This unlocks the browser's autoplay policy for the session
+    // Inicializar el sistema de audio tras la interacción del usuario al iniciar sesión
+    // Esto habilita la reproducción de alertas de sonido en el navegador durante la sesión
     try {
       initAudio();
     } catch (err) {
-      console.warn("Could not initialize audio context:", err);
+      console.warn("No se pudo inicializar el audio:", err);
     }
 
     try {

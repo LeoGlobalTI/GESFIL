@@ -184,7 +184,7 @@ const StaffView: React.FC<StaffViewProps> = ({
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Operativo</p>
                   </div>
                   <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight truncate">{station.name}</h2>
-                  <p className="text-xs text-slate-500 font-bold truncate">Responsable: <span className="text-indigo-600">{station.operatorName}</span></p>
+                  <p className="text-xs text-slate-500 font-bold truncate">Responsable: <span className="text-indigo-600">{station.operatorName || 'Operador en turno'}</span></p>
                 </div>
               </div>
               
@@ -223,7 +223,15 @@ const StaffView: React.FC<StaffViewProps> = ({
             </div>
             
             <div className="flex-grow overflow-y-auto max-h-[600px] custom-scrollbar divide-y divide-slate-100">
-              {waitingTickets.length === 0 ? (
+              {station.serviceIds.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full p-12 text-center">
+                  <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-amber-200 text-2xl">
+                    ⚠️
+                  </div>
+                  <p className="font-black text-amber-600 uppercase tracking-widest text-[11px]">Sin Servicios Vinculados</p>
+                  <p className="text-xs text-slate-400 font-medium mt-1">Este módulo aún no tiene categorías de atención asignadas en la configuración.</p>
+                </div>
+              ) : waitingTickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-12 text-center">
                   <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
                      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8h-2c0-2.26-1.5-4.31-2-6-1.5 1.5-3 2.5-5 3.5a11 11 0 0 1-1 12.5"/></svg>

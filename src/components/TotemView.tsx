@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Service, Printer, PrinterType } from '@/types';
+import { Service, Station, Printer, PrinterType } from '@/types';
 import { PrinterService } from '@/services/PrinterService';
-import { useGesfilStore } from '@/state/useGesfilStore';
 import { CORPORATE_INFO } from '@/constants';
 
 /**
@@ -9,9 +8,11 @@ import { CORPORATE_INFO } from '@/constants';
  */
 interface TotemViewProps {
   services: Service[];
+  stations: Station[];
   nextSequence: Record<string, number>;
   onIssueTicket: (serviceId: string, priority: boolean) => Promise<any>;
   printers: Printer[];
+  isServiceActive?: (service: Service, station?: Station) => boolean;
 }
 
 /**
@@ -29,8 +30,14 @@ interface IssuedTicketInfo {
  * Componente principal del Tótem de autoservicio.
  * Gestiona la selección de servicios, emisión de tickets y la impresión.
  */
-const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTicket, printers }) => {
-  const { state, isServiceActive: checkActive } = useGesfilStore();
+const TotemView: React.FC<TotemViewProps> = ({ 
+  services, 
+  stations, 
+  nextSequence, 
+  onIssueTicket, 
+  printers,
+  isServiceActive 
+}) => {
   const [issuedTicket, setIssuedTicket] = useState<IssuedTicketInfo | null>(null);
   const [isPriority, setIsPriority] = useState<boolean | null>(null);
   const [isIssuing, setIsIssuing] = useState(false);
@@ -42,13 +49,13 @@ const TotemView: React.FC<TotemViewProps> = ({ services, nextSequence, onIssueTi
   // Filtra servicios activos según la configuración de las estaciones
   const availableServices = useMemo(() => {
     return services.filter(service => 
-      state.stations.some(station => 
+      stations.some(station => 
         station.active && 
         station.serviceIds.includes(service.id) && 
-        checkActive(service, station)
+        (isServiceActive ? isServiceActive(service, station) : true)
       )
     );
-  }, [services, state.stations, checkActive]);
+  }, [services, stations, isServiceActive]);
 
   // Efecto para activar modo administrador oculto
   useEffect(() => {

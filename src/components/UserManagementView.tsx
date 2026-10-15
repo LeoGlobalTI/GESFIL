@@ -242,9 +242,15 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ users, onAdd, o
                     className="w-full px-5 py-3 bg-white border border-indigo-100 rounded-xl outline-none font-black text-indigo-600 text-sm shadow-sm"
                   >
                     <option value="">Sin módulo asignado...</option>
-                    {stations.filter(s => s.active).map(s => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.operatorName})</option>
-                    ))}
+                    {stations.filter(s => s.active).map(s => {
+                      // Buscar si otro operador ya tiene este módulo asignado
+                      const currentOperator = users.find(u => u.role === UserRole.STAFF && u.assignedStationId === s.id && u.id !== editingUser?.id);
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {currentOperator ? `(Ocupado por: ${currentOperator.name})` : '(Disponible)'}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}

@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Ticket, Service, Station, TicketStatus } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, PieChart, Pie, Legend } from 'recharts';
 import TicketTraceabilityModal from './TicketTraceabilityModal';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 import { mapTicketFromDb } from '@/utils/mappers';
 
 interface DashboardViewProps {

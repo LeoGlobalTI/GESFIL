@@ -18,10 +18,24 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'v4.3.0 Enterprise',
+    version: 'v4.3.1 Enterprise',
     tag: 'Producción',
-    date: '14 de Octubre de 2026',
+    date: '15 de Octubre de 2026',
     isLatest: true,
+    summary: 'Sincronización bidireccional inmediata de módulos y operadores en caliente, resolución de hallazgos operativos y optimización de visualización en Display.',
+    highlights: [
+      'Sincronización bidireccional instantánea entre Operadores (Staff) y Nodos de Atención (Módulos) evitando colisiones de asignación.',
+      'Soporte dinámico y extracción robusta de dígitos de módulo en Display Público (compatibilidad completa para "MOD 03", "MOD03", "Módulo 3").',
+      'Desbloqueo automático e instantáneo en pantalla de Operador ante asignaciones o reactivaciones de módulos en caliente.',
+      'Mejora del motor de horarios operativos de servicios con soporte para turnos continuos y horarios nocturnos.',
+      'Unificación de conexiones a base de datos y optimización de métricas en Business Intelligence Hub.',
+    ],
+  },
+  {
+    version: 'v4.3.0 Enterprise',
+    tag: 'Estable',
+    date: '14 de Octubre de 2026',
+    isLatest: false,
     summary: 'Sincronización instantánea de 0 ms entre pantallas, actualización optimista en atención de turnos y estandarización integral del código.',
     highlights: [
       'Sincronización instantánea (0 ms) entre Tótem, Operadores y Display público mediante bus BroadcastChannel y almacenamiento local.',

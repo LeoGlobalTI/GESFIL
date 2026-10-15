@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
-import { Station, Service } from '@/types';
+import { Station, Service, User, UserRole } from '@/types';
 import ConfirmationModal from './ConfirmationModal';
 
 interface StationManagementViewProps {
   stations: Station[];
   services: Service[];
+  users?: User[];
   onAdd: (data: Omit<Station, 'id'>) => void;
   onUpdate: (id: string, updates: Partial<Station>) => void;
   onDelete: (id: string) => void;
 }
 
-const StationManagementView: React.FC<StationManagementViewProps> = ({ stations, services, onAdd, onUpdate, onDelete }) => {
+const StationManagementView: React.FC<StationManagementViewProps> = ({ stations, services, users = [], onAdd, onUpdate, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -219,13 +220,36 @@ const StationManagementView: React.FC<StationManagementViewProps> = ({ stations,
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Operador Responsable</label>
-                <input 
-                  type="text" placeholder="Ej: Juan Pérez (Opcional)"
-                  value={formData.operatorName}
-                  onChange={e => setFormData({...formData, operatorName: e.target.value})}
-                  className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
-                />
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operador Responsable</label>
+                  {users.length > 0 && (
+                    <span className="text-[9px] font-bold text-indigo-600">Sincronización automática</span>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input 
+                    type="text" placeholder="Ej: Operador 03 (Opcional)"
+                    value={formData.operatorName}
+                    onChange={e => setFormData({...formData, operatorName: e.target.value})}
+                    className="flex-grow px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-900 focus:ring-2 focus:ring-indigo-600/20"
+                  />
+                  {users.filter(u => u.role === UserRole.STAFF).length > 0 && (
+                    <select
+                      value={users.find(u => u.name === formData.operatorName)?.name || ''}
+                      onChange={e => {
+                        if (e.target.value) {
+                          setFormData({ ...formData, operatorName: e.target.value });
+                        }
+                      }}
+                      className="px-4 py-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none"
+                    >
+                      <option value="">Elegir de lista...</option>
+                      {users.filter(u => u.role === UserRole.STAFF).map(u => (
+                        <option key={u.id} value={u.name}>{u.name} (@{u.username})</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-4">
