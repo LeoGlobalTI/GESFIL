@@ -46,51 +46,22 @@ export const useGesfilStore = () => {
 
   const [loading, setLoading] = useState(true);
   const isSubscribedRef = useRef(false);
+  const fetchAllRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
-  // Obtener únicamente los turnos del día para consultas rápidas
-  const fetchTicketsOnly = useCallback(async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const { data: tickets, error } = await supabase
-        .from('tickets')
-        .select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority')
-        .gte('created_at', today.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (!error && tickets) {
-        const mapped = tickets.map(mapTicketFromDb);
-        setState(prev => {
-          // Comprobar si hubo cambios reales para evitar redibujados innecesarios
-          const currentSignature = prev.tickets.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
-          const newSignature = mapped.map(t => `${t.id}:${t.status}:${t.calledAt}:${t.metadata?.recalledCount}`).join('|');
-          if (currentSignature === newSignature) {
-            return prev;
-          }
-          return { ...prev, tickets: mapped };
-        });
-      }
-    } catch (err) {
-      console.warn('Error al consultar turnos recientes:', err);
-    }
-  }, []);
-
-  // Carga inicial completa de datos del sistema
+  // Carga inicial completa de datos del sistema con tolerancia a fallos y reintento
   const fetchAll = useCallback(async () => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       const [
-        { data: services, error: errServices },
-        { data: stations, error: errStations },
-        { data: tickets, error: errTickets },
-        { data: users, error: errUsers },
-        { data: printers, error: errPrinters },
-        { data: configs, error: errConfigs }
-      ] = await Promise.all([
+        resServices,
+        resStations,
+        resTickets,
+        resUsers,
+        resPrinters,
+        resConfigs
+      ] = await Promise.allSettled([
         supabase.from('services').select('id, name, prefix, color, description, active'),
         supabase.from('stations').select('id, name, operator_name, service_ids, service_configs, active'),
         supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(100),
@@ -99,27 +70,49 @@ export const useGesfilStore = () => {
         supabase.from('system_config').select('key, value').in('key', ['nextSequence', 'displaySettings'])
       ]);
 
-      if (errServices || errStations || errTickets || errUsers || errPrinters || errConfigs) {
-        console.error("Error al cargar datos iniciales:", { errServices, errStations, errTickets, errUsers, errPrinters, errConfigs });
+      const services = resServices.status === 'fulfilled' && !resServices.value.error ? (resServices.value.data as any[]) : null;
+      const stations = resStations.status === 'fulfilled' && !resStations.value.error ? (resStations.value.data as any[]) : null;
+      const tickets = resTickets.status === 'fulfilled' && !resTickets.value.error ? (resTickets.value.data as any[]) : null;
+      const users = resUsers.status === 'fulfilled' && !resUsers.value.error ? (resUsers.value.data as any[]) : null;
+      const printers = resPrinters.status === 'fulfilled' && !resPrinters.value.error ? (resPrinters.value.data as any[]) : null;
+      const configs = resConfigs.status === 'fulfilled' && !resConfigs.value.error ? (resConfigs.value.data as any[]) : null;
+
+      const hasFailure = !services || !stations || !tickets || !users || !printers || !configs;
+      if (hasFailure) {
+        console.warn('Aviso de conexión temporal con Supabase. Reintentando sincronización en 3s...');
+        setTimeout(() => {
+          fetchAllRef.current();
+        }, 3000);
       }
 
-      const nextSeqConfig = configs?.find(c => c.key === 'nextSequence');
-      const displayConfig = configs?.find(c => c.key === 'displaySettings');
+      setState(prev => {
+        const nextSeqConfig = configs?.find((c: any) => c.key === 'nextSequence');
+        const displayConfig = configs?.find((c: any) => c.key === 'displaySettings');
 
-      setState(prev => ({
-        ...prev,
-        services: (services || []).map(mapServiceFromDb),
-        stations: (stations || []).map(mapStationFromDb),
-        tickets: (tickets || []).map(mapTicketFromDb),
-        users: (users || []).map(mapUserFromDb),
-        printers: (printers || []).map(mapPrinterFromDb),
-        nextSequence: nextSeqConfig?.value || { sequences: {} },
-        displaySettings: displayConfig?.value || { notificationSound: 'timbre' }
-      }));
+        return {
+          ...prev,
+          services: services ? services.map(mapServiceFromDb) : prev.services,
+          stations: stations ? stations.map(mapStationFromDb) : prev.stations,
+          tickets: tickets ? tickets.map(mapTicketFromDb) : prev.tickets,
+          users: users ? users.map(mapUserFromDb) : prev.users,
+          printers: printers ? printers.map(mapPrinterFromDb) : prev.printers,
+          nextSequence: nextSeqConfig?.value || prev.nextSequence,
+          displaySettings: displayConfig?.value || prev.displaySettings
+        };
+      });
+    } catch (err) {
+      console.warn('Excepción de red al conectar con Supabase. Reintentando en 3s:', err);
+      setTimeout(() => {
+        fetchAllRef.current();
+      }, 3000);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchAllRef.current = fetchAll;
+  }, [fetchAll]);
 
   // Función interna para procesar eventos sincronizados entre pestañas o pantallas
   const handleIncomingSyncEvent = useCallback((data: any) => {
@@ -379,6 +372,7 @@ export const useGesfilStore = () => {
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             isSubscribedRef.current = true;
+            fetchAll();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             isSubscribedRef.current = false;
             // Solo reintentar si no estamos desmontando y hubo error de red
@@ -393,12 +387,7 @@ export const useGesfilStore = () => {
 
     setupRealtime();
 
-    // 4. Consulta periódica rápida (cada 2.5 segundos) para turnos
-    const fastPoll = setInterval(() => {
-      fetchTicketsOnly();
-    }, 2500);
-
-    // 5. Consulta periódica de configuración y operadores cada 10 segundos como salvaguarda
+    // 4. Consulta periódica de configuración y operadores cada 10 minutos como salvaguarda
     const configPoll = setInterval(async () => {
       try {
         const [
@@ -430,7 +419,14 @@ export const useGesfilStore = () => {
           });
         }
       } catch (err) {}
-    }, 10000);
+    }, 600000);
+
+    // 5. Latido de seguridad espaciado (cada 3 minutos) como respaldo para pantallas Smart TV
+    const safeHeartbeat = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchAll();
+      }
+    }, 180000);
 
     // 6. Recuperación automática al reactivarse la pestaña o reconectarse a internet
     const handleVisibility = () => {
@@ -451,8 +447,8 @@ export const useGesfilStore = () => {
 
     return () => {
       isCleaningUp = true;
-      clearInterval(fastPoll);
       clearInterval(configPoll);
+      clearInterval(safeHeartbeat);
       if (bc) bc.close();
       window.removeEventListener('storage', handleStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -461,7 +457,7 @@ export const useGesfilStore = () => {
         supabase.removeChannel(realtimeChannel);
       }
     };
-  }, [fetchAll, fetchTicketsOnly, handleIncomingSyncEvent]);
+  }, [fetchAll, handleIncomingSyncEvent]);
 
   // Persistencia de la sesión del usuario en el navegador
   useEffect(() => {
