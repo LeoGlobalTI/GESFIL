@@ -307,8 +307,9 @@ const StaffController: React.FC<{
   services: Service[], 
   stations: Station[],
   isServiceActive: (service: Service, station?: Station) => boolean,
-  updateTicketStatus: (t: string, s: TicketStatus, st: string) => void 
-}> = ({ user, tickets, services, stations, isServiceActive, updateTicketStatus }) => {
+  updateTicketStatus: (t: string, s: TicketStatus, st: string) => void,
+  isRealtimeConnected?: boolean
+}> = ({ user, tickets, services, stations, isServiceActive, updateTicketStatus, isRealtimeConnected }) => {
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN;
   const defaultStationId = isAdmin 
     ? (stations.find(s => s.active)?.id || null) 
@@ -364,6 +365,7 @@ const StaffController: React.FC<{
       isServiceActive={isServiceActive}
       onStatusUpdate={updateTicketStatus} 
       onSelectStation={isAdmin ? handleSelectStation : undefined}
+      isRealtimeConnected={isRealtimeConnected}
     />
   );
 };
@@ -392,7 +394,7 @@ const AppShell: React.FC<{
 
 const App: React.FC = () => {
   const { 
-    state, addTicket, updateTicketStatus, resetSystem, login, logout, 
+    state, isRealtimeConnected, addTicket, updateTicketStatus, resetSystem, login, logout, 
     addUser, updateUser, deleteUser,
     addService, updateService, deleteService,
     addStation, updateStation, deleteStation,
@@ -442,6 +444,7 @@ const App: React.FC = () => {
                   stations={state.stations}
                   isServiceActive={isServiceActive}
                   updateTicketStatus={updateTicketStatus}
+                  isRealtimeConnected={isRealtimeConnected}
                 />
               </div>
             ) : <Navigate to="/" />
@@ -449,7 +452,7 @@ const App: React.FC = () => {
           
           <Route path="/display" element={
             [UserRole.ADMIN, UserRole.SUPERADMIN, UserRole.STAFF, UserRole.TOTEM, UserRole.DISPLAY].includes(role) 
-              ? <PublicDisplayView tickets={state.tickets} stations={state.stations} services={state.services} displaySettings={state.displaySettings} />
+              ? <PublicDisplayView tickets={state.tickets} stations={state.stations} services={state.services} displaySettings={state.displaySettings} isRealtimeConnected={isRealtimeConnected} />
               : <Navigate to="/" />
           } />
           

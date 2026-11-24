@@ -12,6 +12,7 @@ interface StaffViewProps {
   isServiceActive: (service: Service, station?: Station) => boolean;
   onStatusUpdate: (ticketId: string, status: TicketStatus, stationId: string) => void;
   onSelectStation?: (stationId: string) => void;
+  isRealtimeConnected?: boolean;
 }
 
 const StaffView: React.FC<StaffViewProps> = ({ 
@@ -22,13 +23,13 @@ const StaffView: React.FC<StaffViewProps> = ({
   userRole,
   isServiceActive,
   onStatusUpdate,
-  onSelectStation 
+  onSelectStation,
+  isRealtimeConnected = true
 }) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.SUPERADMIN;
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isConnected, setIsConnected] = useState(true); // Mock connection status
 
   const handleStatusUpdate = async (ticketId: string, status: TicketStatus, stationId: string) => {
     if (isProcessing) return;
@@ -93,7 +94,7 @@ const StaffView: React.FC<StaffViewProps> = ({
           <div className="bg-white rounded-[2rem] lg:rounded-[2.5rem] p-3 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col flex-grow overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-50 mb-3 flex justify-between items-center">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] block">Red de Módulos</span>
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} title={isConnected ? 'Conectado' : 'Desconectado'}></div>
+              <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} title={isRealtimeConnected ? 'Tiempo Real Conectado' : 'Reconectando Tiempo Real...'}></div>
             </div>
             
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">

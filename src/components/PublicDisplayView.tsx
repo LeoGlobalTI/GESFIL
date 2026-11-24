@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { Ticket, Station, TicketStatus, Service } from '@/types';
 import { playNotificationSound, initAudio } from '@/lib/audio';
 import { CORPORATE_INFO } from '@/constants';
@@ -11,16 +11,39 @@ interface PublicDisplayViewProps {
   stations: Station[];
   services: Service[];
   displaySettings?: { notificationSound: string; notificationVolume?: number; notificationDuration?: number };
+  isRealtimeConnected?: boolean;
 }
+
+/**
+ * Reloj aislado para evitar re-renderizar toda la pantalla pública cada segundo.
+ */
+const DisplayClock: React.FC = React.memo(() => {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center md:items-end">
+      <div className="text-4xl md:text-6xl font-extrabold tracking-tighter leading-none tabular-nums text-indigo-50">
+        {now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })}
+        <span className="text-xl md:text-2xl ml-2 opacity-30">{now.toLocaleTimeString('es-CL', { second: '2-digit', hour12: false })}</span>
+      </div>
+      <div className="text-[10px] md:text-sm font-bold text-slate-500 mt-2 uppercase tracking-[0.2em]">
+        {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+      </div>
+    </div>
+  );
+});
 
 /**
  * Componente principal de la pantalla pública.
  * Muestra los llamados activos y la lista de espera.
  */
-const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations, services, displaySettings }) => {
-  const [now, setNow] = useState(new Date());
-  const [lastCalledTicketId, setLastCalledTicketId] = useState<string | null>(null);
-  const [lastRecalledCount, setLastRecalledCount] = useState<number>(0);
+const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations, services, displaySettings, isRealtimeConnected = true }) => {
+  const notifiedCallsRef = useRef<Record<string, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [showDock, setShowDock] = useState(false);
   const [clickCount, setClickCount] = useState(0);
@@ -65,17 +88,13 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
     `}</style>
   );
 
-  // Efecto para actualizar el reloj cada segundo
+  // Keep-alive: Previene que la pantalla se apague por inactividad
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    
-    // Keep-alive: Previene que la pantalla se apague por inactividad
     let wakeLock: any = null;
     const requestWakeLock = async () => {
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await (navigator as any).wakeLock.request('screen');
-          console.log('Wake Lock activo');
         }
       } catch (err: any) {
         if (err?.name !== 'NotAllowedError' && err?.name !== 'SecurityError') {
@@ -86,9 +105,6 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
 
     requestWakeLock();
 
-    // Fallback: ping periódico para mantener la pestaña activa
-    const keepAlive = setInterval(() => console.log('Ping de Keep-alive del Display'), 30000);
-
     const handleVisibilityChange = () => {
       if (wakeLock !== null && document.visibilityState === 'visible') {
         requestWakeLock();
@@ -98,8 +114,6 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      clearInterval(timer);
-      clearInterval(keepAlive);
       if (wakeLock) wakeLock.release();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -116,23 +130,39 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
       .slice(0, 5),
   [tickets]);
 
-  // Efecto para reproducir sonido de notificación cuando hay un nuevo llamado
+  // Efecto para reproducir sonido de notificación sin falsos timbres ni saltos entre módulos
   useEffect(() => {
-    const currentCalling = activeCalls.find(t => t.status === TicketStatus.CALLING);
-    if (currentCalling) {
-      const currentRecalledCount = currentCalling.metadata?.recalledCount || 0;
-      
-      if (currentCalling.id !== lastCalledTicketId || currentRecalledCount > lastRecalledCount) {
-        setLastCalledTicketId(currentCalling.id);
-        setLastRecalledCount(currentRecalledCount);
-        playNotificationSound(
-          displaySettings?.notificationSound || 'timbre',
-          displaySettings?.notificationVolume ?? 1,
-          displaySettings?.notificationDuration ?? 1
-        );
+    const callingTickets = activeCalls.filter(t => t.status === TicketStatus.CALLING);
+    const activeIds = new Set(callingTickets.map(t => t.id));
+
+    // Limpiar del registro tickets que ya pasaron a ATTENDING/COMPLETED
+    Object.keys(notifiedCallsRef.current).forEach(id => {
+      if (!activeIds.has(id)) {
+        delete notifiedCallsRef.current[id];
       }
+    });
+
+    if (!audioUnlocked) return;
+
+    let shouldPlaySound = false;
+    callingTickets.forEach(ticket => {
+      const currentRecalledCount = ticket.metadata?.recalledCount || 0;
+      const prevCount = notifiedCallsRef.current[ticket.id];
+
+      if (prevCount === undefined || currentRecalledCount > prevCount) {
+        notifiedCallsRef.current[ticket.id] = currentRecalledCount;
+        shouldPlaySound = true;
+      }
+    });
+
+    if (shouldPlaySound) {
+      playNotificationSound(
+        displaySettings?.notificationSound || 'timbre',
+        displaySettings?.notificationVolume ?? 1,
+        displaySettings?.notificationDuration ?? 1
+      );
     }
-  }, [activeCalls, lastCalledTicketId, lastRecalledCount, displaySettings?.notificationSound, displaySettings?.notificationVolume, displaySettings?.notificationDuration]);
+  }, [activeCalls, audioUnlocked, displaySettings?.notificationSound, displaySettings?.notificationVolume, displaySettings?.notificationDuration]);
 
   // Filtra y ordena los tickets en espera (Prioridad primero, luego cronológico)
   const waitingList = useMemo(() => 
@@ -199,23 +229,24 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           </div>
         </div>
         
-        <div className="flex flex-col items-center md:items-end">
-          <div className="text-4xl md:text-6xl font-extrabold tracking-tighter leading-none tabular-nums text-indigo-50">
-            {now.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })}
-            <span className="text-xl md:text-2xl ml-2 opacity-30">{now.toLocaleTimeString('es-CL', { second: '2-digit', hour12: false })}</span>
-          </div>
-          <div className="text-[10px] md:text-sm font-bold text-slate-500 mt-2 uppercase tracking-[0.2em]">
-            {now.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </div>
-        </div>
+        <DisplayClock />
       </header>
 
       {/* Cuerpo principal: Llamados activos y lista de espera */}
       <main className="flex-grow grid grid-cols-1 lg:grid-cols-12 gap-12">
         <div className="lg:col-span-8 space-y-6">
-          <div className="flex items-center gap-4 px-4 mb-4">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></div>
-            <h2 className="text-sm font-black text-slate-500 uppercase tracking-[0.5em]">Llamados Activos</h2>
+          <div className="flex items-center justify-between px-4 mb-4">
+            <div className="flex items-center gap-4">
+              <div className={`w-2 h-2 rounded-full ${isRealtimeConnected ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`}></div>
+              <h2 className="text-sm font-black text-slate-500 uppercase tracking-[0.5em]">Llamados Activos</h2>
+            </div>
+            <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
+              isRealtimeConnected
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+            }`}>
+              {isRealtimeConnected ? 'Tiempo Real Activo' : 'Reconectando...'}
+            </span>
           </div>
           
           {/* Lista de llamados activos */}

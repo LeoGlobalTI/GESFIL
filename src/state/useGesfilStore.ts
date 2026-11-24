@@ -16,16 +16,27 @@ const DEFAULT_USERS: User[] = [
 const CANAL_SINCRONIZACION = 'gesfil_multi_screen_sync';
 const CLAVE_ALMACENAMIENTO_SYNC = 'gesfil_sync_event_v1';
 
-// Función para avisar al instante a todas las pantallas abiertas (comunicación directa en 0 milisegundos)
+// Referencia al canal Realtime activo para broadcast instantáneo entre dispositivos distintos (~35ms)
+let activeRealtimeChannel: any = null;
+
+// Función para avisar al instante a todas las pantallas abiertas (mismo PC y dispositivos remotos)
 export const broadcastScreenEvent = (payload: any) => {
   try {
+    const enrichedPayload = { ...payload, timestamp: Date.now() };
     if (typeof window !== 'undefined') {
       if (typeof BroadcastChannel !== 'undefined') {
         const bc = new BroadcastChannel(CANAL_SINCRONIZACION);
-        bc.postMessage({ ...payload, timestamp: Date.now() });
+        bc.postMessage(enrichedPayload);
         bc.close();
       }
-      localStorage.setItem(CLAVE_ALMACENAMIENTO_SYNC, JSON.stringify({ ...payload, timestamp: Date.now() }));
+      localStorage.setItem(CLAVE_ALMACENAMIENTO_SYNC, JSON.stringify(enrichedPayload));
+    }
+    if (activeRealtimeChannel && activeRealtimeChannel.state === 'joined') {
+      activeRealtimeChannel.send({
+        type: 'broadcast',
+        event: 'gesfil_sync',
+        payload: enrichedPayload
+      }).catch(() => {});
     }
   } catch (err) {
     console.warn('Aviso de sincronización:', err);
@@ -45,7 +56,9 @@ export const useGesfilStore = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const isSubscribedRef = useRef(false);
+  const hasSubscribedOnceRef = useRef(false);
   const fetchAllRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // Carga inicial completa de datos del sistema con tolerancia a fallos y reintento
@@ -64,7 +77,7 @@ export const useGesfilStore = () => {
       ] = await Promise.allSettled([
         supabase.from('services').select('id, name, prefix, color, description, active'),
         supabase.from('stations').select('id, name, operator_name, service_ids, service_configs, active'),
-        supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(100),
+        supabase.from('tickets').select('id, code, service_id, status, created_at, called_at, started_at, ended_at, station_id, recalled_count, priority').gte('created_at', today.toISOString()).order('created_at', { ascending: false }).limit(1000),
         supabase.from('users').select('id, username, password, name, role, assigned_station_id'),
         supabase.from('printers').select('id, name, type, address, port, active'),
         supabase.from('system_config').select('key, value').in('key', ['nextSequence', 'displaySettings'])
@@ -246,18 +259,35 @@ export const useGesfilStore = () => {
     };
     window.addEventListener('storage', handleStorage);
 
-    // 3. Conexión en tiempo real con Supabase (canal estable y sin bucles de reconexión)
+    // 3. Conexión en tiempo real con Supabase (Broadcast directo + postgres_changes + reconexión ante CLOSED)
     let realtimeChannel: any = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const setupRealtime = () => {
       if (isCleaningUp) return;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       if (realtimeChannel) {
         try {
+          if (activeRealtimeChannel === realtimeChannel) {
+            activeRealtimeChannel = null;
+          }
           supabase.removeChannel(realtimeChannel);
         } catch (e) {}
       }
 
-      realtimeChannel = supabase.channel('gesfil_realtime_main')
+      realtimeChannel = supabase.channel('gesfil_realtime_main', {
+        config: {
+          broadcast: { self: false }
+        }
+      })
+        .on('broadcast', { event: 'gesfil_sync' }, ({ payload }) => {
+          if (!isCleaningUp && payload) {
+            handleIncomingSyncEvent(payload);
+          }
+        })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'services' }, (payload) => {
           setState(prev => {
             const services = [...prev.services];
@@ -368,18 +398,43 @@ export const useGesfilStore = () => {
             return { ...prev, printers };
           });
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, fetchAll)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, (payload: any) => {
+          const row = payload.new;
+          if (!row || !row.key) return;
+          if (row.key === 'displaySettings' && row.value) {
+            setState(prev => ({
+              ...prev,
+              displaySettings: row.value
+            }));
+          } else if (row.key === 'nextSequence' && row.value) {
+            setState(prev => ({
+              ...prev,
+              nextSequence: row.value
+            }));
+          }
+        })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
+            activeRealtimeChannel = realtimeChannel;
             isSubscribedRef.current = true;
-            fetchAll();
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setIsRealtimeConnected(true);
+            // Solo recargar completo si es una reconexión (evita doble fetchAll inicial)
+            if (hasSubscribedOnceRef.current) {
+              fetchAll();
+            } else {
+              hasSubscribedOnceRef.current = true;
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            if (activeRealtimeChannel === realtimeChannel) {
+              activeRealtimeChannel = null;
+            }
             isSubscribedRef.current = false;
-            // Solo reintentar si no estamos desmontando y hubo error de red
-            if (!isCleaningUp) {
-              setTimeout(() => {
+            setIsRealtimeConnected(false);
+            if (!isCleaningUp && !reconnectTimer) {
+              reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
                 if (!isCleaningUp) setupRealtime();
-              }, 4000);
+              }, 3000);
             }
           }
         });
@@ -447,6 +502,10 @@ export const useGesfilStore = () => {
 
     return () => {
       isCleaningUp = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       clearInterval(configPoll);
       clearInterval(safeHeartbeat);
       if (bc) bc.close();
@@ -454,6 +513,9 @@ export const useGesfilStore = () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('online', handleOnline);
       if (realtimeChannel) {
+        if (activeRealtimeChannel === realtimeChannel) {
+          activeRealtimeChannel = null;
+        }
         supabase.removeChannel(realtimeChannel);
       }
     };
@@ -505,7 +567,8 @@ export const useGesfilStore = () => {
 
     let currentSeq = 1;
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    // Usar fecha local YYYY-MM-DD (evita reinicio prematuro por desfase horario UTC)
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     today.setHours(0, 0, 0, 0);
 
     let config = { ...state.nextSequence };
@@ -515,12 +578,14 @@ export const useGesfilStore = () => {
     if (!config.sequences) config.sequences = {};
 
     try {
-      // Calcular número correlativo evitando saltos o colisiones
+      // Consultar solo los últimos turnos del día para calcular correlativo de forma rápida
       const { data: todayTickets, error } = await supabase
         .from('tickets')
         .select('code')
         .eq('service_id', serviceId)
-        .gte('created_at', today.toISOString());
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(20);
         
       let maxNum = 0;
       if (!error && todayTickets) {
@@ -597,8 +662,10 @@ export const useGesfilStore = () => {
       return;
     }
 
+    const isInitialCall = ticket.status === TicketStatus.WAITING && newStatus === TicketStatus.CALLING;
+
     // Validación: No permitir llamar a otro turno si ya hay uno activo en este módulo
-    if (newStatus === TicketStatus.CALLING && ticket.id !== ticketId) {
+    if (newStatus === TicketStatus.CALLING && ticket.status !== TicketStatus.CALLING) {
       const hasActive = state.tickets.some(t => 
         t.stationId === stationId && 
         t.id !== ticketId &&
@@ -628,7 +695,7 @@ export const useGesfilStore = () => {
       updates.ended_at = nowIso;
     }
 
-    // 1. Actualización optimista instantánea (0 ms para que el operador no espere nada)
+    // 1. Actualización optimista local inmediata
     const optimisticTicket: Ticket = {
       ...ticket,
       status: newStatus,
@@ -650,22 +717,37 @@ export const useGesfilStore = () => {
       return { ...prev, tickets };
     });
 
-    // 2. Transmisión instantánea a pantallas (el display suena y actualiza de inmediato)
-    broadcastScreenEvent({
-      type: 'TICKET_UPDATE',
-      ticket: optimisticTicket
-    });
+    // Si es un cambio ya propio del módulo (rellamado, atender, completar), difundir en 34ms sin esperar DB
+    if (!isInitialCall) {
+      broadcastScreenEvent({
+        type: 'TICKET_UPDATE',
+        ticket: optimisticTicket
+      });
+    }
 
-    // 3. Guardado en la base de datos Supabase
+    // 2. Guardado atómico en Supabase
     try {
-      const { data, error } = await supabase.from('tickets')
-        .update(updates)
-        .eq('id', ticketId)
-        .select()
-        .single();
+      let query = supabase.from('tickets').update(updates).eq('id', ticketId);
+      if (isInitialCall) {
+        // Bloqueo atómico: solo un módulo puede tomar un turno que sigue en WAITING
+        query = query.eq('status', TicketStatus.WAITING);
+      }
+
+      const { data, error } = await query.select().maybeSingle();
         
       if (error) {
         console.error('Error actualizando turno en base de datos:', error);
+        if (isInitialCall) {
+          fetchAll();
+        }
+      } else if (!data && isInitialCall) {
+        // Otro módulo ganó el llamado milisegundos antes: revertir estado local y sincronizar
+        setState(prev => ({
+          ...prev,
+          tickets: prev.tickets.map(t => t.id === ticketId ? ticket : t)
+        }));
+        fetchAll();
+        alert('Este turno acaba de ser llamado por otro módulo.');
       } else if (data) {
         const reconciled = mapTicketFromDb(data);
         setState(prev => {
@@ -676,15 +758,18 @@ export const useGesfilStore = () => {
           }
           return { ...prev, tickets };
         });
-        broadcastScreenEvent({
-          type: 'TICKET_UPDATE',
-          ticket: reconciled
-        });
+        // En llamado inicial, emitir un único Broadcast autorizado tras confirmar bloqueo atómico
+        if (isInitialCall) {
+          broadcastScreenEvent({
+            type: 'TICKET_UPDATE',
+            ticket: reconciled
+          });
+        }
       }
     } catch (err) {
       console.error('Excepción al guardar turno en base de datos:', err);
     }
-  }, [state.tickets, state.stations]);
+  }, [state.tickets, state.stations, fetchAll]);
 
   // Agregar nuevo usuario con actualización optimista inmediata
   const addUser = useCallback(async (u: Omit<User, 'id'>) => {
@@ -1239,7 +1324,7 @@ export const useGesfilStore = () => {
   }, []);
 
   return { 
-    state, loading, login, logout, addTicket, updateTicketStatus, resetSystem, seedDatabase,
+    state, loading, isRealtimeConnected, login, logout, addTicket, updateTicketStatus, resetSystem, seedDatabase,
     addUser, updateUser, deleteUser, addService, updateService, deleteService, 
     addStation, updateStation, deleteStation, isServiceActive,
     addPrinter, updatePrinter, deletePrinter, updateDisplaySettings,

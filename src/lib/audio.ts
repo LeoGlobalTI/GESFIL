@@ -1,5 +1,7 @@
 // Contexto de audio global para reproducción de sonidos
 let audioCtx: AudioContext | null = null;
+let lastPlayedAt = 0;
+const SOUND_COOLDOWN_MS = 650;
 
 // Inicializa el sistema de audio del navegador
 export const initAudio = () => {
@@ -13,43 +15,52 @@ export const initAudio = () => {
   if (audioCtx) {
     // Reactivar el audio si el navegador lo suspendió por inactividad
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
     
     // Emitir un tono inaudible para desbloquear el audio en navegadores móviles y de escritorio
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    gain.gain.value = 0; // Sin volumen (silencio)
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.1);
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0; // Sin volumen (silencio)
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {}
   }
 };
 
 // Reproduce el sonido de llamado configurado (campana, timbre o alerta)
-export const playNotificationSound = (type: string, masterVolume: number = 1, durationMultiplier: number = 1) => {
+export const playNotificationSound = (type: string, masterVolume: number = 1, durationMultiplier: number = 1): boolean => {
   if (!audioCtx) {
     initAudio(); // Inicializar si aún no estaba listo
   }
-  if (!audioCtx) return;
+  if (!audioCtx) return false;
 
   // Asegurar que el contexto de sonido esté activo
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
   }
+
+  // Evitar superposición de timbres si varios módulos llaman en el mismo instante
+  const now = Date.now();
+  if (now - lastPlayedAt < SOUND_COOLDOWN_MS) {
+    return true;
+  }
+  lastPlayedAt = now;
 
   const ctx = audioCtx;
 
   // Genera un tono musical sintético según frecuencia y duración
-  const playTone = (freq: number, type: OscillatorType, time: number, duration: number, vol: number = 0.1) => {
+  const playTone = (freq: number, oscType: OscillatorType, time: number, duration: number, vol: number = 0.1) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.type = type;
+    osc.type = oscType;
     osc.frequency.setValueAtTime(freq, ctx.currentTime + time * durationMultiplier);
     
     // Ajustar el volumen final con el volumen maestro seleccionado
-    const finalVol = vol * masterVolume * 10;
+    const finalVol = Math.max(0.001, vol * masterVolume * 10);
     
     gain.gain.setValueAtTime(finalVol, ctx.currentTime + time * durationMultiplier);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (time + duration) * durationMultiplier);
@@ -71,4 +82,5 @@ export const playNotificationSound = (type: string, masterVolume: number = 1, du
     playTone(1000, 'square', 0.2, 0.1, 0.05);
     playTone(1000, 'square', 0.4, 0.1, 0.05);
   }
+  return true;
 };

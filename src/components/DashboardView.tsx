@@ -17,6 +17,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (dateRange === 'today') {
+      setHistoricalTickets(tickets);
+    }
+  }, [dateRange, tickets]);
+
+  useEffect(() => {
+    if (dateRange === 'today') return;
     let ignore = false;
 
     const fetchHistoricalTickets = async (start: Date, end: Date) => {
@@ -27,9 +34,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
           .select('*')
           .gte('created_at', start.toISOString())
           .lte('created_at', end.toISOString());
-          
+
         if (error) throw error;
-        
+
         if (data && !ignore) {
           setHistoricalTickets(data.map(mapTicketFromDb));
         }
@@ -40,14 +47,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
       }
     };
 
-    if (dateRange === 'today') {
-      setHistoricalTickets(tickets);
-      return () => { ignore = true; };
-    }
-    
-    let start = new Date();
-    let end = new Date();
-    
+    const start = new Date();
+    const end = new Date();
+
     if (dateRange === 'week') {
       start.setDate(start.getDate() - 7);
       start.setHours(0, 0, 0, 0);
@@ -55,13 +57,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tickets, services, statio
       start.setDate(start.getDate() - 30);
       start.setHours(0, 0, 0, 0);
     }
-    
+
     fetchHistoricalTickets(start, end);
 
     return () => {
       ignore = true;
     };
-  }, [dateRange, tickets]);
+  }, [dateRange]);
 
   const stats = useMemo(() => {
     const total = historicalTickets.length;
