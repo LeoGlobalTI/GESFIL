@@ -122,9 +122,9 @@ export class PrinterService {
     const bridgeUrl = printer.address || 'http://localhost:3001/imprimir';
     const commands = this.getEscPosString(data);
 
-    // Timeout de 8 segundos para evitar bloqueos prolongados en la interfaz
+    // Timeout de 4 segundos para evitar esperas largas sin cortar impresiones válidas por túnel
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     try {
       const response = await fetch(bridgeUrl, {
@@ -155,7 +155,7 @@ export class PrinterService {
       
       // Manejo de timeout
       if (e.name === 'AbortError') {
-        throw new Error("TIEMPO DE ESPERA AGOTADO: El Bridge no respondió en 8 segundos. Verifique la conexión a internet en el PC de la impresora.");
+        throw new Error("TIEMPO DE ESPERA AGOTADO: El Bridge no respondió en 4 segundos. Verifique la conexión a internet en el PC de la impresora.");
       }
 
       // Detectar bloqueo de contenido mixto (HTTPS -> HTTP)
@@ -180,8 +180,7 @@ export class PrinterService {
   private static printBrowser(data: any, targetWindow?: Window | null) {
     const printWindow = targetWindow || window.open('', '_blank', 'width=300,height=450');
     if (!printWindow) {
-      alert("La ventana de impresión fue bloqueada por el navegador. Por favor, permita las ventanas emergentes para este sitio.");
-      return false;
+      throw new Error("La ventana de impresión fue bloqueada por el navegador. Por favor, permita las ventanas emergentes para este sitio.");
     }
 
     // Generación de HTML para el ticket

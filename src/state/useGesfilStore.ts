@@ -60,6 +60,20 @@ export const useGesfilStore = () => {
   const isSubscribedRef = useRef(false);
   const hasSubscribedOnceRef = useRef(false);
   const fetchAllRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const nextSequenceRef = useRef<{ lastResetDate?: string; sequences: Record<string, number> }>({ sequences: {} });
+
+  const isSameTicketSnapshot = (a: Ticket, b: Ticket) =>
+    a.id === b.id &&
+    a.code === b.code &&
+    a.serviceId === b.serviceId &&
+    a.status === b.status &&
+    (a.stationId || null) === (b.stationId || null) &&
+    (a.metadata?.recalledCount || 0) === (b.metadata?.recalledCount || 0) &&
+    !!a.metadata?.priority === !!b.metadata?.priority &&
+    !!a.calledAt === !!b.calledAt &&
+    !!a.startedAt === !!b.startedAt &&
+    !!a.endedAt === !!b.endedAt &&
+    (!a.calledAt || !b.calledAt || Math.abs(a.calledAt - b.calledAt) < 5000);
 
   // Carga inicial completa de datos del sistema con tolerancia a fallos y reintento
   const fetchAll = useCallback(async () => {
@@ -98,8 +112,14 @@ export const useGesfilStore = () => {
         }, 3000);
       }
 
+      if (configs) {
+        const nextSeqConfig = configs.find((c: any) => c.key === 'nextSequence');
+        if (nextSeqConfig?.value) {
+          nextSequenceRef.current = nextSeqConfig.value;
+        }
+      }
+
       setState(prev => {
-        const nextSeqConfig = configs?.find((c: any) => c.key === 'nextSequence');
         const displayConfig = configs?.find((c: any) => c.key === 'displaySettings');
 
         return {
@@ -109,7 +129,6 @@ export const useGesfilStore = () => {
           tickets: tickets ? tickets.map(mapTicketFromDb) : prev.tickets,
           users: users ? users.map(mapUserFromDb) : prev.users,
           printers: printers ? printers.map(mapPrinterFromDb) : prev.printers,
-          nextSequence: nextSeqConfig?.value || prev.nextSequence,
           displaySettings: displayConfig?.value || prev.displaySettings
         };
       });
@@ -133,8 +152,11 @@ export const useGesfilStore = () => {
 
     if (data.type === 'TICKET_UPDATE' && data.ticket) {
       setState(prev => {
+        const idx = prev.tickets.findIndex(t => t.id === data.ticket.id);
+        if (idx !== -1 && isSameTicketSnapshot(prev.tickets[idx], data.ticket)) {
+          return prev;
+        }
         const tickets = [...prev.tickets];
-        const idx = tickets.findIndex(t => t.id === data.ticket.id);
         if (idx !== -1) {
           tickets[idx] = data.ticket;
         } else {
@@ -328,29 +350,39 @@ export const useGesfilStore = () => {
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, (payload) => {
           setState(prev => {
-            const tickets = [...prev.tickets];
             if (payload.eventType === 'INSERT') {
               const mapped = mapTicketFromDb(payload.new);
-              const idx = tickets.findIndex(t => t.id === mapped.id);
+              const idx = prev.tickets.findIndex(t => t.id === mapped.id);
+              if (idx !== -1 && isSameTicketSnapshot(prev.tickets[idx], mapped)) {
+                return prev;
+              }
+              const tickets = [...prev.tickets];
               if (idx === -1) {
                 tickets.unshift(mapped);
               } else {
                 tickets[idx] = mapped;
               }
+              return { ...prev, tickets };
             }
             if (payload.eventType === 'UPDATE') {
               const mapped = mapTicketFromDb(payload.new);
-              const index = tickets.findIndex(t => t.id === mapped.id);
+              const index = prev.tickets.findIndex(t => t.id === mapped.id);
+              if (index !== -1 && isSameTicketSnapshot(prev.tickets[index], mapped)) {
+                return prev;
+              }
+              const tickets = [...prev.tickets];
               if (index !== -1) {
                 tickets[index] = mapped;
               } else {
                 tickets.unshift(mapped);
               }
+              return { ...prev, tickets };
             }
             if (payload.eventType === 'DELETE') {
-              return { ...prev, tickets: tickets.filter(t => t.id !== payload.old.id) };
+              if (!prev.tickets.some(t => t.id === payload.old.id)) return prev;
+              return { ...prev, tickets: prev.tickets.filter(t => t.id !== payload.old.id) };
             }
-            return { ...prev, tickets };
+            return prev;
           });
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (payload) => {
@@ -407,10 +439,7 @@ export const useGesfilStore = () => {
               displaySettings: row.value
             }));
           } else if (row.key === 'nextSequence' && row.value) {
-            setState(prev => ({
-              ...prev,
-              nextSequence: row.value
-            }));
+            nextSequenceRef.current = row.value;
           }
         })
         .subscribe((status) => {
@@ -571,11 +600,13 @@ export const useGesfilStore = () => {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     today.setHours(0, 0, 0, 0);
 
-    let config = { ...state.nextSequence };
+    let config = {
+      ...nextSequenceRef.current,
+      sequences: { ...(nextSequenceRef.current.sequences || {}) }
+    };
     if (config.lastResetDate !== todayStr) {
       config = { lastResetDate: todayStr, sequences: {} };
     }
-    if (!config.sequences) config.sequences = {};
 
     try {
       // Consultar solo los últimos turnos del día para calcular correlativo de forma rápida
@@ -607,11 +638,7 @@ export const useGesfilStore = () => {
 
     if (isNaN(currentSeq) || currentSeq < 1) currentSeq = 1;
     config.sequences[serviceId] = currentSeq;
-
-    setState(prev => ({
-      ...prev,
-      nextSequence: config
-    }));
+    nextSequenceRef.current = config;
 
     supabase.from('system_config').upsert({ key: 'nextSequence', value: config }).then(({error}) => {
       if (error) console.error("Error al guardar nextSequence:", error);
@@ -647,7 +674,7 @@ export const useGesfilStore = () => {
     });
 
     return newTicket;
-  }, [state.services, state.nextSequence]);
+  }, [state.services]);
 
   // Actualizar estado de un turno (Llamar, Atender, Completar, Cancelar)
   const updateTicketStatus = useCallback(async (ticketId: string, newStatus: TicketStatus, stationId: string) => {
@@ -1197,6 +1224,8 @@ export const useGesfilStore = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
 
+      nextSequenceRef.current = { lastResetDate: today, sequences: {} };
+
       // Reinicio optimista inmediato en memoria y aviso a todas las pantallas
       setState(prev => ({
         ...prev,
@@ -1310,6 +1339,7 @@ export const useGesfilStore = () => {
       if (err7) throw err7;
 
       const today = new Date().toISOString().split('T')[0];
+      nextSequenceRef.current = { lastResetDate: today, sequences: {} };
       const { error: err8 } = await supabase.from('system_config').upsert({ key: 'nextSequence', value: { lastResetDate: today, sequences: {} } });
       if (err8) throw err8;
 

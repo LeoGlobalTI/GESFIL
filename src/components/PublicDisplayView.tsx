@@ -42,7 +42,7 @@ const DisplayClock: React.FC = React.memo(() => {
  * Componente principal de la pantalla pública.
  * Muestra los llamados activos y la lista de espera.
  */
-const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations, services, displaySettings, isRealtimeConnected = true }) => {
+const PublicDisplayView: React.FC<PublicDisplayViewProps> = React.memo(({ tickets, stations, services, displaySettings, isRealtimeConnected = true }) => {
   const notifiedCallsRef = useRef<Record<string, number>>({});
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [showDock, setShowDock] = useState(false);
@@ -165,17 +165,26 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
   }, [activeCalls, audioUnlocked, displaySettings?.notificationSound, displaySettings?.notificationVolume, displaySettings?.notificationDuration]);
 
   // Filtra y ordena los tickets en espera (Prioridad primero, luego cronológico)
-  const waitingList = useMemo(() => 
-    tickets
-      .filter(t => t.status === TicketStatus.WAITING)
-      .sort((a, b) => {
-        const aPriority = a.metadata?.priority ? 1 : 0;
-        const bPriority = b.metadata?.priority ? 1 : 0;
-        if (aPriority !== bPriority) return bPriority - aPriority;
-        return a.createdAt - b.createdAt;
-      })
-      .slice(0, 10),
-  [tickets]);
+  const { waitingList, totalWaitingCount, latestWaitingTicket } = useMemo(() => {
+    const waiting = tickets.filter(t => t.status === TicketStatus.WAITING);
+    let latest: Ticket | null = null;
+    for (const t of waiting) {
+      if (!latest || t.createdAt > latest.createdAt) {
+        latest = t;
+      }
+    }
+    const sorted = [...waiting].sort((a, b) => {
+      const aPriority = a.metadata?.priority ? 1 : 0;
+      const bPriority = b.metadata?.priority ? 1 : 0;
+      if (aPriority !== bPriority) return bPriority - aPriority;
+      return a.createdAt - b.createdAt;
+    });
+    return {
+      waitingList: sorted.slice(0, 10),
+      totalWaitingCount: waiting.length,
+      latestWaitingTicket: latest
+    };
+  }, [tickets]);
 
   // Obtiene el identificador numérico o etiqueta limpia del módulo (ej: "MOD 03", "MOD03", "Módulo 3" -> "03")
   const getStationCode = (stationName?: string) => {
@@ -251,7 +260,7 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
           
           {/* Lista de llamados activos */}
           <div className="grid grid-cols-1 gap-6">
-            {activeCalls.map((ticket, idx) => {
+            {activeCalls.map((ticket) => {
               const station = stations.find(s => s.id === ticket.stationId);
               const service = services.find(s => s.id === ticket.serviceId);
               const isCalling = ticket.status === TicketStatus.CALLING;
@@ -259,13 +268,12 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
               return (
                 <div 
                   key={ticket.id}
-                  className={`flex flex-col sm:flex-row items-center justify-between p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-700 animate-fade-in gap-6 ${
+                  className={`flex flex-col sm:flex-row items-center justify-between p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-200 gap-6 ${
                     isCalling 
                     ? "scale-[1.02] shadow-[0_0_80px_-10px_rgba(79,70,229,0.5)]" 
                     : "bg-slate-900/40 border-slate-800/50"
                   }`}
                   style={{ 
-                    animationDelay: `${idx * 0.15}s`,
                     backgroundColor: isCalling ? (service?.color || '#4f46e5') : undefined,
                     borderColor: isCalling ? 'rgba(255,255,255,0.2)' : undefined
                   }}
@@ -304,16 +312,16 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
              <div className="flex items-center justify-between mb-10">
                 <h3 className="text-xl font-bold tracking-tight text-white uppercase tracking-widest">En Espera</h3>
                 <span className="bg-indigo-500 text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-950">
-                  Total: {tickets.filter(t => t.status === TicketStatus.WAITING).length}
+                  Total: {totalWaitingCount}
                 </span>
              </div>
 
-             <div className="flex-grow space-y-3 mb-12 overflow-hidden">
+             <div className={`flex-grow space-y-3 overflow-hidden ${totalWaitingCount > 10 ? 'mb-4' : 'mb-12'}`}>
                {waitingList.length > 0 ? (
-                 waitingList.map((t, idx) => {
+                 waitingList.map((t) => {
                    const service = services.find(s => s.id === t.serviceId);
                    return (
-                     <div key={t.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5 animate-fade-in" style={{ animationDelay: `${idx * 0.08}s` }}>
+                     <div key={t.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
                         <div className="flex items-center gap-4">
                           <div className="w-2 h-10 rounded-full" style={{ backgroundColor: service?.color || '#333' }}></div>
                           <span className="text-3xl font-bold tracking-tighter">{t.code}</span>
@@ -328,6 +336,13 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
                  </div>
                )}
              </div>
+
+             {totalWaitingCount > 10 && latestWaitingTicket && (
+               <div className="mt-auto pt-3 border-t border-white/10 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-indigo-300">
+                 <span>+{totalWaitingCount - 10} más en fila</span>
+                 <span>Último: {latestWaitingTicket.code}</span>
+               </div>
+             )}
            </div>
         </div>
       </main>
@@ -361,6 +376,6 @@ const PublicDisplayView: React.FC<PublicDisplayViewProps> = ({ tickets, stations
       {dockStyle}
     </div>
   );
-};
+});
 
 export default PublicDisplayView;

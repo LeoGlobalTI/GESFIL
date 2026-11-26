@@ -15,7 +15,7 @@ interface StaffViewProps {
   isRealtimeConnected?: boolean;
 }
 
-const StaffView: React.FC<StaffViewProps> = ({ 
+const StaffView: React.FC<StaffViewProps> = React.memo(({ 
   station, 
   allStations = [], 
   tickets, 
@@ -41,15 +41,21 @@ const StaffView: React.FC<StaffViewProps> = ({
     }
   };
 
+  const servicesById = useMemo(() => {
+    const map = new Map<string, Service>();
+    for (const s of services) map.set(s.id, s);
+    return map;
+  }, [services]);
+
   const relevantTickets = useMemo(() => {
     if (!station) return [];
     return tickets.filter(t => {
-      const service = services.find(s => s.id === t.serviceId);
+      const service = servicesById.get(t.serviceId);
       return station.serviceIds.includes(t.serviceId) && 
              service && 
              service.active;
     });
-  }, [tickets, station, services, isServiceActive]);
+  }, [tickets, station, servicesById]);
 
   const waitingTickets = useMemo(() => 
     relevantTickets
@@ -84,7 +90,37 @@ const StaffView: React.FC<StaffViewProps> = ({
     return diff > 0 ? `${diff}m` : 'Reciente';
   };
 
-  const currentService = activeTicket ? services.find(s => s.id === activeTicket.serviceId) : null;
+  const currentService = activeTicket ? servicesById.get(activeTicket.serviceId) || null : null;
+
+  const { sortedStations, globalWaitingCount, stationWaitingCounts, stationActiveMap } = useMemo(() => {
+    const sorted = [...allStations].sort((a, b) => a.name.localeCompare(b.name));
+    const counts: Record<string, number> = {};
+    const activeMap: Record<string, boolean> = {};
+    let globalWaiting = 0;
+
+    for (const t of tickets) {
+      if (t.status === TicketStatus.WAITING) {
+        globalWaiting++;
+        const srv = servicesById.get(t.serviceId);
+        if (srv && srv.active) {
+          for (const s of sorted) {
+            if (s.serviceIds.includes(t.serviceId)) {
+              counts[s.id] = (counts[s.id] || 0) + 1;
+            }
+          }
+        }
+      } else if (t.stationId && (t.status === TicketStatus.CALLING || t.status === TicketStatus.ATTENDING)) {
+        activeMap[t.stationId] = true;
+      }
+    }
+
+    return {
+      sortedStations: sorted,
+      globalWaitingCount: globalWaiting,
+      stationWaitingCounts: counts,
+      stationActiveMap: activeMap
+    };
+  }, [allStations, tickets, servicesById]);
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-180px)] w-full max-w-[1600px] mx-auto gap-4 lg:gap-8 p-2 animate-fade-in">
@@ -98,16 +134,10 @@ const StaffView: React.FC<StaffViewProps> = ({
             </div>
             
             <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-y-auto pb-2 lg:pb-0 pr-1.5 custom-scrollbar flex-grow no-scrollbar lg:scrollbar">
-              {[...allStations].sort((a, b) => a.name.localeCompare(b.name)).map(s => {
+              {sortedStations.map(s => {
                 const isActive = station && s.id === station.id;
-                const stationWaitingCount = tickets.filter(t => {
-                  if (t.status !== TicketStatus.WAITING || !s.serviceIds.includes(t.serviceId)) return false;
-                  const service = services.find(srv => srv.id === t.serviceId);
-                  return service && service.active;
-                }).length;
-                const activeOnStation = tickets.find(t => 
-                  t.stationId === s.id && (t.status === TicketStatus.CALLING || t.status === TicketStatus.ATTENDING)
-                );
+                const stationWaitingCount = stationWaitingCounts[s.id] || 0;
+                const activeOnStation = !!stationActiveMap[s.id];
 
                 return (
                   <button
@@ -148,7 +178,7 @@ const StaffView: React.FC<StaffViewProps> = ({
              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Carga de Trabajo Global</p>
              <div className="flex items-end gap-3 mb-2">
                 <span className="text-4xl font-black tracking-tighter text-white">
-                  {tickets.filter(t => t.status === TicketStatus.WAITING).length}
+                  {globalWaitingCount}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">En Espera</span>
              </div>
@@ -241,10 +271,10 @@ const StaffView: React.FC<StaffViewProps> = ({
                   <p className="text-xs text-slate-300 font-medium">Sin pacientes pendientes en red</p>
                 </div>
               ) : (
-                waitingTickets.map((t, idx) => {
-                   const service = services.find(s => s.id === t.serviceId);
+                waitingTickets.map((t) => {
+                   const service = servicesById.get(t.serviceId);
                    return (
-                    <div key={t.id} className={`p-6 flex justify-between items-center hover:bg-slate-50 transition-all group animate-fade-in ${t.metadata?.priority ? 'bg-amber-50/30' : ''}`} style={{ animationDelay: `${idx * 0.05}s` }}>
+                    <div key={t.id} className={`p-6 flex justify-between items-center hover:bg-slate-50 transition-colors group ${t.metadata?.priority ? 'bg-amber-50/30' : ''}`}>
                       <div className="flex items-center gap-5">
                         <div className="w-1.5 h-12 rounded-full" style={{ backgroundColor: t.metadata?.priority ? '#f59e0b' : service?.color }}></div>
                         <div>
@@ -371,6 +401,6 @@ const StaffView: React.FC<StaffViewProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default StaffView;

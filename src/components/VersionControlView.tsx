@@ -18,10 +18,23 @@ interface ReleaseNote {
 
 const RELEASES: ReleaseNote[] = [
   {
-    version: 'v4.4.0 Enterprise',
+    version: 'v4.4.1 Enterprise',
     tag: 'Producción',
-    date: '24 de Noviembre de 2026',
+    date: '26 de Noviembre de 2026',
     isLatest: true,
+    summary: 'Aceleración de respuesta visual en Display y Staff, deduplicación inteligente de eventos Realtime, memoización de vistas y robustez de impresión en Tótem.',
+    highlights: [
+      'Deduplicación de eventos Realtime/Broadcast y aislamiento de nextSequence en memoria para evitar re-renderizados duplicados en Display y Staff.',
+      'Eliminación de retardos visuales escalonados (0 ms de espera visual en listas), transiciones ágiles en llamados activos e indicador de último ingreso en colas largas (>10 turnos).',
+      'Memoización de componentes principales (Display, Staff y Tótem) y cálculo optimizado de contadores por módulo en la barra lateral de operadores.',
+      'Timeout optimizado de 4 segundos para impresoras Bridge y manejo de errores no bloqueante en Tótem ante bloqueos de ventana emergente.',
+    ],
+  },
+  {
+    version: 'v4.4.0 Enterprise',
+    tag: 'Estable',
+    date: '24 de Noviembre de 2026',
+    isLatest: false,
     summary: 'Optimización masiva de sincronización en tiempo real (~35ms), arquitectura Broadcast nativa, bloqueo atómico en llamados y estabilidad de disco en Supabase.',
     highlights: [
       'Implementación de Supabase Realtime Broadcast directo entre pantallas para reducir la latencia de actualización a ~35ms sin saturar I/O de disco.',

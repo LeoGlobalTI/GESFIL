@@ -30,7 +30,7 @@ interface IssuedTicketInfo {
  * Componente principal del Tótem de autoservicio.
  * Gestiona la selección de servicios, emisión de tickets y la impresión.
  */
-const TotemView: React.FC<TotemViewProps> = ({ 
+const TotemView: React.FC<TotemViewProps> = React.memo(({ 
   services, 
   stations, 
   nextSequence, 
@@ -493,6 +493,6 @@ const TotemView: React.FC<TotemViewProps> = ({
       {dockStyle}
     </div>
   );
-};
+});
 
 export default TotemView;
